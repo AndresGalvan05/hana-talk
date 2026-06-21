@@ -2,7 +2,7 @@ name: core-api
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
     paths:
       - "core-api/**"
       - ".github/workflows/core-api.yml"
