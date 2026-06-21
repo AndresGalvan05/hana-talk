@@ -1,5 +1,6 @@
 package online.hanatalk.security
 
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -19,6 +20,11 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
     fun filterChain(http: HttpSecurity): SecurityFilterChain = http
         .csrf { it.disable() }
         .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+        .exceptionHandling {
+            it.authenticationEntryPoint { _, response, _ ->
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+            }
+        }
         .authorizeHttpRequests {
             it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
