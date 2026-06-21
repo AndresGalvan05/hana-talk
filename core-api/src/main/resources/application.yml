@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: core-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hanatalk}
+    username: ${DB_USERNAME:hanatalk}
+    password: ${DB_PASSWORD:hanatalk}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
