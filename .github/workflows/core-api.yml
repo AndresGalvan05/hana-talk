@@ -1,0 +1,43 @@
+name: core-api
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "core-api/**"
+      - ".github/workflows/core-api.yml"
+  pull_request:
+    paths:
+      - "core-api/**"
+      - ".github/workflows/core-api.yml"
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core-api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: gradle
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Lint
+        run: ./gradlew ktlintCheck --no-daemon
+
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+      - name: Build
+        run: ./gradlew bootJar --no-daemon
+
+      - name: Build Docker image
+        run: docker build -t hanatalk/core-api:${{ github.sha }} .
