@@ -2,6 +2,7 @@ package online.hanatalk.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -20,6 +21,7 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
         .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
         .authorizeHttpRequests {
             it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
             it.anyRequest().authenticated()
         }
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
