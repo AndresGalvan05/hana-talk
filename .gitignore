@@ -1,0 +1,43 @@
+# Kotlin / Gradle
+.gradle/
+build/
+*.class
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+venv/
+.env
+*.pyo
+
+# Go
+bin/
+*.exe
+vendor/
+
+# Node / React
+node_modules/
+.next/
+.nuxt/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit these
+.env
+.env.local
+.env.*.local
