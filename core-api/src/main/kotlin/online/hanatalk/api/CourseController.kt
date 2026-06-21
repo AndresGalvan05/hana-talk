@@ -21,25 +21,31 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/courses")
 class CourseController(private val courseService: CourseService) {
-
     @GetMapping
-    fun list(@RequestParam(required = false) language: Language?): List<CourseResponse> =
-        courseService.listAll(language)
+    fun list(
+        @RequestParam(required = false) language: Language?,
+    ): List<CourseResponse> = courseService.listAll(language)
 
     @GetMapping("/{id}")
-    fun get(@PathVariable id: UUID): CourseResponse =
-        courseService.get(id)
+    fun get(
+        @PathVariable id: UUID,
+    ): CourseResponse = courseService.get(id)
 
     @PostMapping
-    fun create(@RequestBody @Valid request: CourseRequest): ResponseEntity<CourseResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(courseService.create(request))
+    fun create(
+        @RequestBody @Valid request: CourseRequest,
+    ): ResponseEntity<CourseResponse> = ResponseEntity.status(HttpStatus.CREATED).body(courseService.create(request))
 
     @PutMapping("/{id}")
-    fun update(@PathVariable id: UUID, @RequestBody @Valid request: CourseRequest): CourseResponse =
-        courseService.update(id, request)
+    fun update(
+        @PathVariable id: UUID,
+        @RequestBody @Valid request: CourseRequest,
+    ): CourseResponse = courseService.update(id, request)
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: UUID): ResponseEntity<Void> {
+    fun delete(
+        @PathVariable id: UUID,
+    ): ResponseEntity<Void> {
         courseService.delete(id)
         return ResponseEntity.noContent().build()
     }

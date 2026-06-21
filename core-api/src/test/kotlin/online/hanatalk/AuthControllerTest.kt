@@ -21,7 +21,6 @@ import org.springframework.test.web.servlet.post
 @WebMvcTest(AuthController::class, excludeAutoConfiguration = [UserDetailsServiceAutoConfiguration::class])
 @Import(SecurityConfig::class)
 class AuthControllerTest {
-
     @Autowired
     lateinit var mockMvc: MockMvc
 

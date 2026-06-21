@@ -15,23 +15,23 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
-
     @Bean
-    fun filterChain(http: HttpSecurity): SecurityFilterChain = http
-        .csrf { it.disable() }
-        .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-        .exceptionHandling {
-            it.authenticationEntryPoint { _, response, _ ->
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+    fun filterChain(http: HttpSecurity): SecurityFilterChain =
+        http
+            .csrf { it.disable() }
+            .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            .exceptionHandling {
+                it.authenticationEntryPoint { _, response, _ ->
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                }
             }
-        }
-        .authorizeHttpRequests {
-            it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
-            it.anyRequest().authenticated()
-        }
-        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
-        .build()
+            .authorizeHttpRequests {
+                it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
+                it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
+                it.anyRequest().authenticated()
+            }
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)
+            .build()
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()

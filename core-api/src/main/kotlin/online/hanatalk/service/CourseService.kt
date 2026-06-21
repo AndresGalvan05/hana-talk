@@ -14,20 +14,21 @@ import java.util.UUID
 
 @Service
 class CourseService(private val courseRepository: CourseRepository) {
-
     fun listAll(language: Language?): List<CourseResponse> =
         (if (language != null) courseRepository.findByLanguage(language) else courseRepository.findAll())
             .map { it.toResponse() }
 
-    fun get(id: UUID): CourseResponse =
-        (courseRepository.findByIdOrNull(id) ?: throw notFound()).toResponse()
+    fun get(id: UUID): CourseResponse = (courseRepository.findByIdOrNull(id) ?: throw notFound()).toResponse()
 
     fun create(request: CourseRequest): CourseResponse {
         val course = Course(title = request.title, language = request.language, description = request.description)
         return courseRepository.save(course).toResponse()
     }
 
-    fun update(id: UUID, request: CourseRequest): CourseResponse {
+    fun update(
+        id: UUID,
+        request: CourseRequest,
+    ): CourseResponse {
         val course = courseRepository.findByIdOrNull(id) ?: throw notFound()
         course.title = request.title
         course.language = request.language

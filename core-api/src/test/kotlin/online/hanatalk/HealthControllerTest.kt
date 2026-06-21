@@ -16,7 +16,6 @@ import org.springframework.test.web.servlet.get
 @WebMvcTest(HealthController::class, excludeAutoConfiguration = [UserDetailsServiceAutoConfiguration::class])
 @Import(SecurityConfig::class)
 class HealthControllerTest {
-
     @Autowired
     lateinit var mockMvc: MockMvc
 

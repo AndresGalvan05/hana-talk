@@ -15,15 +15,15 @@ class JwtAuthFilter(
     private val jwtService: JwtService,
     private val userDetailsService: UserDetailsService,
 ) : OncePerRequestFilter() {
-
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
         chain: FilterChain,
     ) {
-        val token = request.getHeader("Authorization")
-            ?.takeIf { it.startsWith("Bearer ") }
-            ?.removePrefix("Bearer ")
+        val token =
+            request.getHeader("Authorization")
+                ?.takeIf { it.startsWith("Bearer ") }
+                ?.removePrefix("Bearer ")
 
         if (token != null && jwtService.isValid(token)) {
             val userDetails = userDetailsService.loadUserByUsername(jwtService.extractSubject(token))

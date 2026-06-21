@@ -19,21 +19,22 @@ import java.util.UUID
 @RestController
 @RequestMapping("/api/courses/{courseId}/lessons")
 class LessonController(private val lessonService: LessonService) {
-
     @GetMapping
-    fun list(@PathVariable courseId: UUID): List<LessonResponse> =
-        lessonService.listForCourse(courseId)
+    fun list(
+        @PathVariable courseId: UUID,
+    ): List<LessonResponse> = lessonService.listForCourse(courseId)
 
     @GetMapping("/{id}")
-    fun get(@PathVariable courseId: UUID, @PathVariable id: UUID): LessonResponse =
-        lessonService.get(courseId, id)
+    fun get(
+        @PathVariable courseId: UUID,
+        @PathVariable id: UUID,
+    ): LessonResponse = lessonService.get(courseId, id)
 
     @PostMapping
     fun create(
         @PathVariable courseId: UUID,
         @RequestBody @Valid request: LessonRequest,
-    ): ResponseEntity<LessonResponse> =
-        ResponseEntity.status(HttpStatus.CREATED).body(lessonService.create(courseId, request))
+    ): ResponseEntity<LessonResponse> = ResponseEntity.status(HttpStatus.CREATED).body(lessonService.create(courseId, request))
 
     @PutMapping("/{id}")
     fun update(
@@ -43,7 +44,10 @@ class LessonController(private val lessonService: LessonService) {
     ): LessonResponse = lessonService.update(courseId, id, request)
 
     @DeleteMapping("/{id}")
-    fun delete(@PathVariable courseId: UUID, @PathVariable id: UUID): ResponseEntity<Void> {
+    fun delete(
+        @PathVariable courseId: UUID,
+        @PathVariable id: UUID,
+    ): ResponseEntity<Void> {
         lessonService.delete(courseId, id)
         return ResponseEntity.noContent().build()
     }

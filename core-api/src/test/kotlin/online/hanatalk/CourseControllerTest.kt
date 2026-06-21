@@ -28,7 +28,6 @@ import java.util.UUID
 @WebMvcTest(CourseController::class, excludeAutoConfiguration = [UserDetailsServiceAutoConfiguration::class])
 @Import(SecurityConfig::class)
 class CourseControllerTest {
-
     @Autowired
     lateinit var mockMvc: MockMvc
 
@@ -41,13 +40,14 @@ class CourseControllerTest {
     @MockitoBean
     lateinit var userDetailsService: UserDetailsServiceImpl
 
-    private val sampleCourse = CourseResponse(
-        id = UUID.randomUUID(),
-        title = "Español Básico",
-        language = Language.SPANISH,
-        description = null,
-        createdAt = Instant.now(),
-    )
+    private val sampleCourse =
+        CourseResponse(
+            id = UUID.randomUUID(),
+            title = "Español Básico",
+            language = Language.SPANISH,
+            description = null,
+            createdAt = Instant.now(),
+        )
 
     @Test
     fun `list courses is public and returns 200`() {

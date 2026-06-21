@@ -12,19 +12,14 @@ import java.util.UUID
 class Lesson(
     @Id
     val id: UUID = UUID.randomUUID(),
-
     @Column(name = "course_id", nullable = false)
     val courseId: UUID,
-
     @Column(nullable = false)
     var title: String,
-
     @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
-
     @Column(nullable = false)
     var position: Int,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 )

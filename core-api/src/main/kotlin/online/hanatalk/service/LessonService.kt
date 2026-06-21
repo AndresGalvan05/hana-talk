@@ -17,13 +17,15 @@ class LessonService(
     private val lessonRepository: LessonRepository,
     private val courseRepository: CourseRepository,
 ) {
-
     fun listForCourse(courseId: UUID): List<LessonResponse> {
         ensureCourseExists(courseId)
         return lessonRepository.findByCourseIdOrderByPosition(courseId).map { it.toResponse() }
     }
 
-    fun get(courseId: UUID, lessonId: UUID): LessonResponse {
+    fun get(
+        courseId: UUID,
+        lessonId: UUID,
+    ): LessonResponse {
         ensureCourseExists(courseId)
         return lessonRepository.findByIdOrNull(lessonId)
             ?.takeIf { it.courseId == courseId }
@@ -31,33 +33,46 @@ class LessonService(
             ?: throw lessonNotFound()
     }
 
-    fun create(courseId: UUID, request: LessonRequest): LessonResponse {
+    fun create(
+        courseId: UUID,
+        request: LessonRequest,
+    ): LessonResponse {
         ensureCourseExists(courseId)
-        val lesson = Lesson(
-            courseId = courseId,
-            title = request.title,
-            content = request.content,
-            position = request.position,
-        )
+        val lesson =
+            Lesson(
+                courseId = courseId,
+                title = request.title,
+                content = request.content,
+                position = request.position,
+            )
         return lessonRepository.save(lesson).toResponse()
     }
 
-    fun update(courseId: UUID, lessonId: UUID, request: LessonRequest): LessonResponse {
+    fun update(
+        courseId: UUID,
+        lessonId: UUID,
+        request: LessonRequest,
+    ): LessonResponse {
         ensureCourseExists(courseId)
-        val lesson = lessonRepository.findByIdOrNull(lessonId)
-            ?.takeIf { it.courseId == courseId }
-            ?: throw lessonNotFound()
+        val lesson =
+            lessonRepository.findByIdOrNull(lessonId)
+                ?.takeIf { it.courseId == courseId }
+                ?: throw lessonNotFound()
         lesson.title = request.title
         lesson.content = request.content
         lesson.position = request.position
         return lessonRepository.save(lesson).toResponse()
     }
 
-    fun delete(courseId: UUID, lessonId: UUID) {
+    fun delete(
+        courseId: UUID,
+        lessonId: UUID,
+    ) {
         ensureCourseExists(courseId)
-        val lesson = lessonRepository.findByIdOrNull(lessonId)
-            ?.takeIf { it.courseId == courseId }
-            ?: throw lessonNotFound()
+        val lesson =
+            lessonRepository.findByIdOrNull(lessonId)
+                ?.takeIf { it.courseId == courseId }
+                ?: throw lessonNotFound()
         lessonRepository.delete(lesson)
     }
 

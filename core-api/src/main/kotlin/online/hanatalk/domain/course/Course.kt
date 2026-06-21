@@ -15,17 +15,13 @@ import java.util.UUID
 class Course(
     @Id
     val id: UUID = UUID.randomUUID(),
-
     @Column(nullable = false)
     var title: String,
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var language: Language,
-
     @Column
     var description: String? = null,
-
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 )
