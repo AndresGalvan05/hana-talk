@@ -1,0 +1,2 @@
+ALTER TABLE courses DROP COLUMN language;
+ALTER TABLE courses ADD COLUMN jlpt_level VARCHAR(5) NOT NULL DEFAULT 'N5';

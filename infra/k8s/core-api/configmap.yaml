@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: core-api-config
+  namespace: dev
+data:
+  DB_URL: "jdbc:postgresql://postgres:5432/hanatalk"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"

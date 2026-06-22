@@ -5,6 +5,7 @@ import online.hanatalk.api.dto.LoginRequest
 import online.hanatalk.api.dto.RegisterRequest
 import online.hanatalk.domain.user.User
 import online.hanatalk.domain.user.UserRepository
+import online.hanatalk.kafka.EventPublisher
 import online.hanatalk.security.JwtService
 import org.springframework.http.HttpStatus
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -16,6 +17,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val jwtService: JwtService,
     private val passwordEncoder: PasswordEncoder,
+    private val eventPublisher: EventPublisher,
 ) {
     fun register(request: RegisterRequest): AuthResponse {
         if (userRepository.existsByEmail(request.email)) {
@@ -30,8 +32,10 @@ class AuthService(
                 email = request.email,
                 username = request.username,
                 passwordHash = passwordEncoder.encode(request.password),
+                nativeLanguage = request.nativeLanguage,
             )
         userRepository.save(user)
+        eventPublisher.publishUserRegistered(user.id, user.username, user.nativeLanguage.name)
 
         return AuthResponse(token = jwtService.generate(user.email), username = user.username)
     }

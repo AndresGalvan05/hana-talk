@@ -2,7 +2,7 @@ package online.hanatalk
 
 import online.hanatalk.api.CourseController
 import online.hanatalk.api.dto.CourseResponse
-import online.hanatalk.domain.Language
+import online.hanatalk.domain.JlptLevel
 import online.hanatalk.security.JwtService
 import online.hanatalk.security.SecurityConfig
 import online.hanatalk.security.UserDetailsServiceImpl
@@ -43,8 +43,8 @@ class CourseControllerTest {
     private val sampleCourse =
         CourseResponse(
             id = UUID.randomUUID(),
-            title = "Español Básico",
-            language = Language.SPANISH,
+            title = "N5 Hiragana",
+            jlptLevel = JlptLevel.N5,
             description = null,
             createdAt = Instant.now(),
         )
@@ -56,18 +56,18 @@ class CourseControllerTest {
         mockMvc.get("/api/courses")
             .andExpect {
                 status { isOk() }
-                jsonPath("$[0].title") { value("Español Básico") }
+                jsonPath("$[0].title") { value("N5 Hiragana") }
             }
     }
 
     @Test
-    fun `list courses filtered by language`() {
-        given(courseService.listAll(Language.SPANISH)).willReturn(listOf(sampleCourse))
+    fun `list courses filtered by jlpt level`() {
+        given(courseService.listAll(JlptLevel.N5)).willReturn(listOf(sampleCourse))
 
-        mockMvc.get("/api/courses?language=SPANISH")
+        mockMvc.get("/api/courses?jlptLevel=N5")
             .andExpect {
                 status { isOk() }
-                jsonPath("$[0].language") { value("SPANISH") }
+                jsonPath("$[0].jlptLevel") { value("N5") }
             }
     }
 
@@ -78,7 +78,7 @@ class CourseControllerTest {
         mockMvc.get("/api/courses/${sampleCourse.id}")
             .andExpect {
                 status { isOk() }
-                jsonPath("$.title") { value("Español Básico") }
+                jsonPath("$.title") { value("N5 Hiragana") }
             }
     }
 
@@ -86,7 +86,7 @@ class CourseControllerTest {
     fun `create course without auth returns 401`() {
         mockMvc.post("/api/courses") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Test","language":"SPANISH"}"""
+            content = """{"title":"N5 Hiragana","jlptLevel":"N5"}"""
         }.andExpect { status { isUnauthorized() } }
     }
 
@@ -97,10 +97,10 @@ class CourseControllerTest {
 
         mockMvc.post("/api/courses") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Español Básico","language":"SPANISH"}"""
+            content = """{"title":"N5 Hiragana","jlptLevel":"N5"}"""
         }.andExpect {
             status { isCreated() }
-            jsonPath("$.language") { value("SPANISH") }
+            jsonPath("$.jlptLevel") { value("N5") }
         }
     }
 
@@ -111,7 +111,7 @@ class CourseControllerTest {
 
         mockMvc.put("/api/courses/${sampleCourse.id}") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Updated","language":"SPANISH"}"""
+            content = """{"title":"Updated","jlptLevel":"N5"}"""
         }.andExpect { status { isOk() } }
     }
 

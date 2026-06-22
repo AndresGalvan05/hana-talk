@@ -3,7 +3,7 @@ package online.hanatalk.api
 import jakarta.validation.Valid
 import online.hanatalk.api.dto.CourseRequest
 import online.hanatalk.api.dto.CourseResponse
-import online.hanatalk.domain.Language
+import online.hanatalk.domain.JlptLevel
 import online.hanatalk.service.CourseService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -23,8 +23,8 @@ import java.util.UUID
 class CourseController(private val courseService: CourseService) {
     @GetMapping
     fun list(
-        @RequestParam(required = false) language: Language?,
-    ): List<CourseResponse> = courseService.listAll(language)
+        @RequestParam(required = false) jlptLevel: JlptLevel?,
+    ): List<CourseResponse> = courseService.listAll(jlptLevel)
 
     @GetMapping("/{id}")
     fun get(

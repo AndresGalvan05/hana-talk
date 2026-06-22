@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN native_language VARCHAR(10) NOT NULL DEFAULT 'ENGLISH';
+ALTER TABLE users ADD COLUMN starting_level  VARCHAR(5);

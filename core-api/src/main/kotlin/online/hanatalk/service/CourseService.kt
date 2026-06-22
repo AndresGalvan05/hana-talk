@@ -3,7 +3,7 @@ package online.hanatalk.service
 import online.hanatalk.api.dto.CourseRequest
 import online.hanatalk.api.dto.CourseResponse
 import online.hanatalk.api.dto.toResponse
-import online.hanatalk.domain.Language
+import online.hanatalk.domain.JlptLevel
 import online.hanatalk.domain.course.Course
 import online.hanatalk.domain.course.CourseRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -14,14 +14,14 @@ import java.util.UUID
 
 @Service
 class CourseService(private val courseRepository: CourseRepository) {
-    fun listAll(language: Language?): List<CourseResponse> =
-        (if (language != null) courseRepository.findByLanguage(language) else courseRepository.findAll())
+    fun listAll(jlptLevel: JlptLevel?): List<CourseResponse> =
+        (if (jlptLevel != null) courseRepository.findByJlptLevel(jlptLevel) else courseRepository.findAll())
             .map { it.toResponse() }
 
     fun get(id: UUID): CourseResponse = (courseRepository.findByIdOrNull(id) ?: throw notFound()).toResponse()
 
     fun create(request: CourseRequest): CourseResponse {
-        val course = Course(title = request.title, language = request.language, description = request.description)
+        val course = Course(title = request.title, jlptLevel = request.jlptLevel, description = request.description)
         return courseRepository.save(course).toResponse()
     }
 
@@ -31,7 +31,7 @@ class CourseService(private val courseRepository: CourseRepository) {
     ): CourseResponse {
         val course = courseRepository.findByIdOrNull(id) ?: throw notFound()
         course.title = request.title
-        course.language = request.language
+        course.jlptLevel = request.jlptLevel
         course.description = request.description
         return courseRepository.save(course).toResponse()
     }
