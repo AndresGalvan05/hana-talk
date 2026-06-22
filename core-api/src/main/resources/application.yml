@@ -24,10 +24,19 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        include: health, prometheus
   endpoint:
     health:
       show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${OTEL_SAMPLING_PROBABILITY:1.0}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 jwt:
   secret: ${JWT_SECRET:dev-local-only-secret-not-for-production!!}
