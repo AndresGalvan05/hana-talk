@@ -8,7 +8,7 @@ and an explicit cut line. Approved 2026-07-13.
 | Milestone | Status |
 |---|---|
 | M1 — Vertical slice (frontend on existing API) | ✅ Done 2026-07-14 |
-| M1.5 — Adopt spec-driven development (OpenSpec) | 🔜 Proposed, awaiting approval |
+| M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
 | M2 — Deployed & public (k3s on Oracle) | Blocked on: user creates Oracle VM |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | Blocked on: user procures LLM API keys |
 | M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
@@ -74,4 +74,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-13 | Roadmap approved. Deploy at M2 (before exercises). Seed-migration-only content through M4; roles at M5. Frontend stack delegated (chose Vite + React 19 + TS, plain CSS, react-router). |
 | 2026-07-13 | No Oracle VM exists; user creates it when M2 starts. No LLM keys; procure at M3. |
 | 2026-07-14 | Playwright MCP server installed for browser verification (isolated browser; preferred over Chrome extension). |
-| 2026-07-14 | Proposed M1.5: adopt OpenSpec for spec-driven development before M2 — see DEVLOG entry for evaluation. Awaiting user approval. |
+| 2026-07-14 | M1.5 approved and done: OpenSpec adopted (chosen over Spec-Kit — brownfield delta specs, light ceremony; see DEVLOG for evaluation). From M2 on, milestone chunks run propose → apply → archive. CLI via npx, no global install. |

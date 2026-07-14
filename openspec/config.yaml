@@ -1,0 +1,20 @@
+schema: spec-driven
+
+context: |
+  HanaTalk: Japanese language-learning app (JLPT N5-N1), a portfolio project
+  optimized for backend/full-stack interview stories. Solo dev, part-time.
+  Polyglot monorepo — the stack is fixed by design, only scope/sequencing vary:
+  - core-api: Kotlin + Spring Boot + PostgreSQL (single API gateway; JWT auth,
+    courses/lessons, progress, Kafka publishing, Flyway migrations)
+  - frontend: React 19 + Vite + TypeScript (talks ONLY to core-api)
+  - ai-exercise-svc: Python + FastAPI + MongoDB (planned, milestone M3)
+  - event-worker: Go + Kafka consumer (planned, milestone M4)
+  - infra: docker compose locally; k3s on Oracle Always Free from M2; Kafka KRaft
+  Conventions: conventional commits without scopes; ktlint (Kotlin), oxlint (TS).
+  Key docs: CLAUDE.md (commands, verification, gotchas), docs/ROADMAP.md
+  (milestones + decision log), docs/DEVLOG.md (session history).
+
+rules:
+  proposal:
+    - Always include a "Non-goals / cut line" section — portfolio scope discipline
+    - State which roadmap milestone the change belongs to

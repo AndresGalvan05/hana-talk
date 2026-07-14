@@ -5,6 +5,17 @@ project** for backend/full-stack interviews. Solo dev, part-time, free-tier
 hosting. Judge every suggestion by: *stronger interview story + actually
 finishable*. "Deployed and demoable" beats "impressive but broken."
 
+## Spec-driven workflow (OpenSpec) — adopted before M2
+
+From M2 onward, every milestone chunk goes through OpenSpec:
+`/opsx:propose "<change>"` (proposal + design + tasks under `openspec/changes/`)
+→ review → `/opsx:apply` → `/opsx:archive` (folds delta specs into the spec
+base). Explore ideas first with `/opsx:explore`. Project context and proposal
+rules live in `openspec/config.yaml`; slash commands in `.claude/commands/opsx/`.
+The CLI runs via `npx -y @fission-ai/openspec@latest` (no global install — that
+hits permission errors on this machine). Keep ROADMAP/DEVLOG as the why/when;
+specs are the what.
+
 ## Where things are documented
 
 - `docs/ROADMAP.md` — milestone plan (M1–M5), status, cut lines, decision log. **Read this first each session.**

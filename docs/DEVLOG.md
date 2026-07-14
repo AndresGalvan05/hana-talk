@@ -3,9 +3,16 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
-## 2026-07-14 — M1 completed; SDD evaluation
+## 2026-07-14 — M1 completed; SDD evaluation; OpenSpec adopted
 
 **Shipped**
+- OpenSpec initialized (`openspec init --tools claude`): `openspec/config.yaml`
+  with project context + proposal rules, `/opsx:*` slash commands and skills
+  under `.claude/`. `.claude/settings.local.json` (per-machine permission
+  grants) gitignored. Note: `npm install -g` fails with EACCES on this machine
+  (root-owned global prefix) — run the CLI via `npx -y @fission-ai/openspec@latest`.
+  This OpenSpec version has no `/opsx:onboard`; baseline specs will accrete as
+  changes are archived from M2 onward.
 - `completedLessonIds` added to `GET /api/courses/{id}/progress`; course page
   shows per-lesson checkmarks; lesson page pre-marks already-completed lessons.
 - Frontend CI workflow (`.github/workflows/frontend.yml`): npm ci → oxlint → build.
