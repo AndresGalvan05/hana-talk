@@ -57,9 +57,16 @@ class EventPublisher(
         key: String,
         payload: Map<String, String>,
     ) {
-        val json = objectMapper.writeValueAsString(payload)
-        kafkaTemplate.send(topic, key, json).whenComplete { _, ex ->
-            if (ex != null) log.error("Failed to publish to {}: {}", topic, ex.message, ex)
+        // Best-effort publish: a broker outage must never fail the user-facing
+        // request. send() can throw synchronously (e.g. metadata timeout), not
+        // just complete exceptionally.
+        try {
+            val json = objectMapper.writeValueAsString(payload)
+            kafkaTemplate.send(topic, key, json).whenComplete { _, ex ->
+                if (ex != null) log.error("Failed to publish to {}: {}", topic, ex.message, ex)
+            }
+        } catch (ex: Exception) {
+            log.error("Failed to publish to {}: {}", topic, ex.message, ex)
         }
     }
 }

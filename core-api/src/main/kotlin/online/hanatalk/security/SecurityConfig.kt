@@ -26,7 +26,7 @@ class SecurityConfig(private val jwtAuthFilter: JwtAuthFilter) {
                 }
             }
             .authorizeHttpRequests {
-                it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**").permitAll()
+                it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**", "/error").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/courses/*/progress").authenticated()
                 it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                 it.anyRequest().authenticated()

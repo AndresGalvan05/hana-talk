@@ -16,6 +16,10 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        # Events are best-effort side effects; never stall a user-facing
+        # request longer than this waiting for broker metadata (default 60s).
+        max.block.ms: 3000
 
 server:
   port: 8080
