@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: core-api
-          image: ghcr.io/andoleafs/hanatalk/core-api:latest
+          image: ghcr.io/andresgalvan05/hana-talk/core-api:latest
           ports:
             - containerPort: 8080
           envFrom:

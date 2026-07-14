@@ -11,9 +11,15 @@ on:
       - "core-api/**"
       - ".github/workflows/core-api.yml"
 
+env:
+  IMAGE: ghcr.io/andresgalvan05/hana-talk/core-api
+
 jobs:
   lint-test-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     defaults:
       run:
         working-directory: core-api
@@ -40,4 +46,11 @@ jobs:
         run: ./gradlew bootJar --no-daemon
 
       - name: Build Docker image
-        run: docker build -t hanatalk/core-api:${{ github.sha }} .
+        run: docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest .
+
+      - name: Push image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
