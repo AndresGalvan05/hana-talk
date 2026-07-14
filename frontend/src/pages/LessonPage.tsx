@@ -21,6 +21,17 @@ export function LessonPage() {
       .catch(() => {
         if (!cancelled) setError('Could not load this lesson.')
       })
+    api
+      .get<CourseProgress>(`/api/courses/${courseId}/progress`)
+      .then((data) => {
+        if (!cancelled && lessonId && data.completedLessonIds.includes(lessonId)) {
+          setCompleted(true)
+          setProgress(data)
+        }
+      })
+      .catch(() => {
+        /* non-fatal: the complete button still works */
+      })
     return () => {
       cancelled = true
     }

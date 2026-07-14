@@ -81,14 +81,15 @@ class ProgressControllerTest {
     fun `get course progress returns counts`() {
         given(userRepository.findByEmail("user")).willReturn(testUser)
         given(progressService.getCourseProgress(any(), any())).willReturn(
-            CourseProgressResponse(completed = 3, total = 10),
+            CourseProgressResponse(completed = 1, total = 10, completedLessonIds = listOf(lessonId)),
         )
 
         mockMvc.get("/api/courses/$courseId/progress")
             .andExpect {
                 status { isOk() }
-                jsonPath("$.completed") { value(3) }
+                jsonPath("$.completed") { value(1) }
                 jsonPath("$.total") { value(10) }
+                jsonPath("$.completedLessonIds[0]") { value(lessonId.toString()) }
             }
     }
 }

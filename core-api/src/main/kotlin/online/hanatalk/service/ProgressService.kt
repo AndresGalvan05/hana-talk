@@ -45,11 +45,13 @@ class ProgressService(
         userId: UUID,
         courseId: UUID,
     ): CourseProgressResponse {
-        val lessonIds = lessonRepository.findByCourseIdOrderByPosition(courseId).map { it.id }.toSet()
-        val completedLessonIds = progressRepository.findByIdUserId(userId).map { it.id.lessonId }.toSet()
+        val lessonIds = lessonRepository.findByCourseIdOrderByPosition(courseId).map { it.id }
+        val completedIds = progressRepository.findByIdUserId(userId).map { it.id.lessonId }.toSet()
+        val completedInCourse = lessonIds.filter { it in completedIds }
         return CourseProgressResponse(
-            completed = (completedLessonIds intersect lessonIds).size,
+            completed = completedInCourse.size,
             total = lessonIds.size,
+            completedLessonIds = completedInCourse,
         )
     }
 }

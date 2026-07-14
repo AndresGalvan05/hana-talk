@@ -25,6 +25,7 @@ export interface Lesson {
 export interface CourseProgress {
   completed: number
   total: number
+  completedLessonIds: string[]
 }
 
 export interface UserProfile {

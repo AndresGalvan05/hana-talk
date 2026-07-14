@@ -271,6 +271,12 @@ label {
   color: var(--muted);
 }
 
+.lesson-done {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+
 /* Lesson page */
 .lesson-content {
   padding: 1.5rem;

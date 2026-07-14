@@ -55,14 +55,22 @@ export function CourseDetailPage() {
             </div>
           )}
           <ol className="lesson-list">
-            {lessons?.map((lesson) => (
-              <li key={lesson.id}>
-                <Link to={`/courses/${course.id}/lessons/${lesson.id}`} className="card lesson-row">
-                  <span className="lesson-position">{lesson.position}</span>
-                  <span>{lesson.title}</span>
-                </Link>
-              </li>
-            ))}
+            {lessons?.map((lesson) => {
+              const done = progress?.completedLessonIds.includes(lesson.id) ?? false
+              return (
+                <li key={lesson.id}>
+                  <Link
+                    to={`/courses/${course.id}/lessons/${lesson.id}`}
+                    className="card lesson-row"
+                  >
+                    <span className={done ? 'lesson-position lesson-done' : 'lesson-position'}>
+                      {done ? '✓' : lesson.position}
+                    </span>
+                    <span>{lesson.title}</span>
+                  </Link>
+                </li>
+              )
+            })}
           </ol>
         </>
       )}
