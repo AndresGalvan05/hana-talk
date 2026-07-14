@@ -1,16 +1,21 @@
 # event-worker
 
-**Status:** Not started — Phase 2 (weeks 5–7)
+**Status:** Not started — Milestone 4
 
 **Stack:** Go, Apache Kafka (KRaft mode)
 
 **Responsibility:** Consume Kafka events and handle async side effects.
 
-- Consumer group subscribing to: `user.registered`, `exercise.completed`, `streak.updated`
-- Welcome notification on registration
-- Streak calculation on exercise completion
-- Leaderboard updates on streak changes
-- Small REST endpoint for the frontend to read leaderboard/streak state
+- Consumer group subscribing to `user.registered` and `exercise.completed`
+  (the two topics core-api publishes — see `KafkaTopics.kt`).
+- Streak calculation on exercise completion (day granularity).
+- Leaderboard ranked by current streak.
+- Small internal REST read API (leaderboard, per-user streak) that the Core
+  API gateway proxies — the frontend never calls this service directly.
+- Idempotent handlers: at-least-once delivery is assumed, processed events
+  are tracked.
 
-Designed to demonstrate idiomatic Go: goroutines and channels used deliberately,
-not a Java clone in Go syntax. Kafka runs in KRaft mode (no ZooKeeper).
+Owns its own storage (separate schema in the shared Postgres instance — one
+DB server on free-tier hosting, but a real ownership boundary). Designed to
+demonstrate idiomatic Go: goroutines and channels used deliberately, not a
+Java clone in Go syntax.
