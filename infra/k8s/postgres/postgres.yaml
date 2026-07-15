@@ -1,21 +1,13 @@
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: dev
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
+# Single-replica StatefulSet: stable pod identity plus a volumeClaimTemplate.
+# A Deployment with an RWO PVC deadlocks on rolling updates (new pod can't
+# mount the volume while the old one holds it); StatefulSets replace in place.
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: postgres
-  namespace: dev
+  namespace: hanatalk
 spec:
+  serviceName: postgres
   replicas: 1
   selector:
     matchLabels:
@@ -41,11 +33,24 @@ spec:
                 secretKeyRef:
                   name: core-api-secret
                   key: DB_PASSWORD
+            # Keep data out of the mount-point lost+found directory
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           ports:
             - containerPort: 5432
           volumeMounts:
-            - name: postgres-data
+            - name: data
               mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "hanatalk", "-d", "hanatalk"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "hanatalk", "-d", "hanatalk"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
           resources:
             requests:
               cpu: "100m"
@@ -53,16 +58,22 @@ spec:
             limits:
               cpu: "500m"
               memory: "512Mi"
-      volumes:
-        - name: postgres-data
-          persistentVolumeClaim:
-            claimName: postgres-pvc
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: postgres
-  namespace: dev
+  namespace: hanatalk
 spec:
   type: ClusterIP
   selector:

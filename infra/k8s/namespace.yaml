@@ -1,0 +1,6 @@
+# Single environment, single namespace. A dev/prod split (and Helm) returns
+# only when a second environment actually exists — see openspec design D1.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hanatalk

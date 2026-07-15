@@ -1,0 +1,38 @@
+# Served by the Traefik bundled with k3s. Single host, path-routed:
+#   /api  -> core-api   (same origin as the SPA, so prod never triggers CORS)
+#   /     -> frontend   (nginx SPA fallback handles client-side routes)
+# /actuator is deliberately NOT routed — health endpoints stay cluster-internal
+# (an external request falls through to the frontend rule and gets the SPA).
+#
+# TLS: hanatalk-origin-tls holds a Cloudflare Origin CA cert, created manually
+# (see README). HTTP->HTTPS redirect happens at the Cloudflare edge
+# ("Always Use HTTPS") — clients only ever reach us through the proxy.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hanatalk
+  namespace: hanatalk
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - hanatalk.online
+      secretName: hanatalk-origin-tls
+  rules:
+    - host: hanatalk.online
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: core-api
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

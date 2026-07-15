@@ -1,0 +1,105 @@
+# Single-node KRaft (combined controller+broker), cluster-internal only —
+# same apache/kafka image as local compose, but no host listener: the only
+# clients live in the cluster. StatefulSet for the same RWO-PVC reason as
+# postgres, plus stable identity for the broker.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: hanatalk
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka
+  template:
+    metadata:
+      labels:
+        app: kafka
+    spec:
+      containers:
+        - name: kafka
+          image: apache/kafka:3.9.1
+          env:
+            # Pinned cluster ID: the entrypoint formats storage on first boot.
+            # A random ID per pod start would crash-loop on restart against an
+            # already-formatted PVC (cluster.id mismatch in meta.properties).
+            - name: CLUSTER_ID
+              value: "C2UdfAqC8tCn5G2-HSwmbQ"
+            - name: KAFKA_NODE_ID
+              value: "0"
+            - name: KAFKA_PROCESS_ROLES
+              value: controller,broker
+            - name: KAFKA_LISTENERS
+              value: INTERNAL://:9092,CONTROLLER://:9093
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: INTERNAL://kafka:9092
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+            - name: KAFKA_INTER_BROKER_LISTENER_NAME
+              value: INTERNAL
+            - name: KAFKA_CONTROLLER_LISTENER_NAMES
+              value: CONTROLLER
+            # Combined mode, single node: the controller is always local
+            - name: KAFKA_CONTROLLER_QUORUM_VOTERS
+              value: 0@localhost:9093
+            - name: KAFKA_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "1"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "1"
+            - name: KAFKA_LOG_DIRS
+              value: /var/lib/kafka/data
+          ports:
+            - containerPort: 9092
+            - containerPort: 9093
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/kafka/data
+          # TCP probes: an exec kafka-topics.sh probe forks a JVM every period,
+          # which is heavy; the runbook's console-consumer spot-check covers
+          # real end-to-end verification.
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1536Mi"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: hanatalk
+spec:
+  type: ClusterIP
+  selector:
+    app: kafka
+  ports:
+    - port: 9092
+      targetPort: 9092

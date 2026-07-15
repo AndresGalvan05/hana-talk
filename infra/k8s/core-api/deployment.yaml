@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: core-api
-  namespace: dev
+  namespace: hanatalk
 spec:
   replicas: 1
   selector:
@@ -16,6 +16,9 @@ spec:
       containers:
         - name: core-api
           image: ghcr.io/andresgalvan05/hana-talk/core-api:latest
+          # :latest + rollout restart is the documented deploy mechanism;
+          # Always ensures the restart actually pulls the new image.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
@@ -23,10 +26,30 @@ spec:
                 name: core-api-config
             - secretRef:
                 name: core-api-secret
+          # Spring Boot auto-enables the readiness/liveness health groups when
+          # it detects Kubernetes; /actuator is permitAll but not routed by the
+          # ingress, so these stay cluster-internal.
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            # JVM start + Flyway migrations: up to 150s before liveness kicks in
+            periodSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 10
           resources:
             requests:
-              cpu: "256m"
+              cpu: "250m"
               memory: "512Mi"
             limits:
-              cpu: "500m"
+              cpu: "1"
               memory: "1Gi"
