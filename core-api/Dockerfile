@@ -1,4 +1,9 @@
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# The jar is arch-independent, so the Gradle stage always runs natively on the
+# build host ($BUILDPLATFORM) and only the JRE stage below is per-target-arch —
+# without this, arm64 CI builds would run Gradle under QEMU emulation. The ARG
+# default keeps the legacy (non-BuildKit) builder working for local compose.
+ARG BUILDPLATFORM=linux/amd64
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 COPY gradle gradle
 COPY gradlew build.gradle.kts settings.gradle.kts ./
