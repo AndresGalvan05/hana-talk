@@ -9,7 +9,7 @@ and an explicit cut line. Approved 2026-07-13.
 |---|---|
 | M1 — Vertical slice (frontend on existing API) | ✅ Done 2026-07-14 |
 | M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
-| M2 — Deployed & public (k3s on Oracle) | Blocked on: user creates Oracle VM |
+| M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | Blocked on: user procures LLM API keys |
 | M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
 | M5 — Polish (tracing, dashboards, admin role, docs) | Last |
@@ -22,17 +22,19 @@ React/Vite/TS frontend, frontend CI, GHCR image push, plus two resilience fixes
 found during verification (best-effort Kafka publishing, `/error` permitAll).
 **Cut (deferred):** exercises, styling depth, admin UI, refresh tokens.
 
-## M2 — Deployed & public
+## M2 — Deployed & public ✅
 
 **Goal:** M1 slice at hanatalk.online: k3s on Oracle Always Free, CI-pushed GHCR
 images, Kafka in-cluster, Cloudflare TLS.
 **Interview story:** solo CI→GHCR→k3s pipeline on free-tier infra.
-**Needs from user:** create the Oracle VM (recommend A1 Flex, 4 OCPU / 24 GB —
-a 1 GB Micro cannot fit this stack).
-**Scope:** frontend Dockerfile + manifest, Traefik ingress, Kafka manifest
-(single-node KRaft), plain k8s Secrets applied manually (documented simplification).
-**Cut:** GitOps/ArgoCD, autoscaling, in-cluster observability stack (OTLP export
-stays pointed nowhere or sampling 0 until M5).
+**Delivered 2026-07-19:** multi-arch (amd64+arm64) images via buildx, single-node
+k3s on Oracle A1 Flex (4 OCPU/24 GB, Oracle Linux 9, aarch64), postgres + Kafka
+StatefulSets, Traefik ingress with Cloudflare Origin CA TLS (Full strict),
+public GHCR packages, full E2E verified live incl. Kafka events, best-effort
+publish with Kafka down, and deploy/rollback loop (sha-pin escape hatch).
+See `infra/k8s/README.md` runbook and DEVLOG 2026-07-19.
+**Cut (as planned):** GitOps/ArgoCD, autoscaling, in-cluster observability
+(OTLP sampling 0 until M5).
 
 ## M3 — AI exercises
 
@@ -75,3 +77,6 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-13 | No Oracle VM exists; user creates it when M2 starts. No LLM keys; procure at M3. |
 | 2026-07-14 | Playwright MCP server installed for browser verification (isolated browser; preferred over Chrome extension). |
 | 2026-07-14 | M1.5 approved and done: OpenSpec adopted (chosen over Spec-Kit — brownfield delta specs, light ceremony; see DEVLOG for evaluation). From M2 on, milestone chunks run propose → apply → archive. CLI via npx, no global install. |
+| 2026-07-19 | Oracle quietly halved Always Free A1 to 2 OCPU/12 GB (2026-06-15, no announcement). Our VM landed at the old 4/24 size — user to watch Cost Analysis + budget alert; stack fits in 2/12 if a resize is ever forced. |
+| 2026-07-19 | VM shipped with Oracle Linux 9 (not planned Ubuntu). Kept: recreating risks losing the hard-won A1 capacity slot; k3s supports OL9 (k3s-selinux auto-installed, firewalld disabled per k3s docs — OCI VCN security list is the single firewall, 22/80/443 only). |
+| 2026-07-19 | GHCR packages made public (repo is public; images hold only compiled artifacts; avoids imagePullSecret PAT rotation). Firebase considered and rejected as hosting alternative during the capacity drought — cannot run the fixed stack, would dissolve the k3s/Kafka story. |

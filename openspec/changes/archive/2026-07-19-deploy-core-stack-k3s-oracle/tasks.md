@@ -18,7 +18,7 @@ external work. Groups 6–7 need the VM to exist.
       (`platforms: linux/amd64,linux/arm64`, QEMU setup, sha + latest tags)
 - [x] 2.2 Extend `frontend.yml` with a buildx build-and-push job mirroring
       core-api's (push only on main, `packages: write` permission)
-- [ ] 2.3 After first main build: verify both GHCR manifests list amd64+arm64
+- [x] 2.3 After first main build: verify both GHCR manifests list amd64+arm64
       (`docker buildx imagetools inspect`) and mark both packages public
 
 ## 3. Kubernetes manifests (`infra/k8s/`)
@@ -54,36 +54,36 @@ external work. Groups 6–7 need the VM to exist.
 
 ## 5. External prerequisites (USER — blocking for groups 6–7)
 
-- [ ] 5.1 USER: create Oracle A1 Flex VM (4 OCPU / 24 GB, Ubuntu, aarch64);
+- [x] 5.1 USER: create Oracle A1 Flex VM (4 OCPU / 24 GB, Ubuntu, aarch64);
       record public IP and SSH key
-- [ ] 5.2 USER: confirm `hanatalk.online` is registered and on Cloudflare;
+- [x] 5.2 USER: confirm `hanatalk.online` is registered and on Cloudflare;
       point proxied A record at the VM IP
-- [ ] 5.3 USER: create Cloudflare Origin CA certificate and set SSL mode to
+- [x] 5.3 USER: create Cloudflare Origin CA certificate and set SSL mode to
       Full (strict)
 
 ## 6. Cluster bring-up (on the VM, following the runbook)
 
-- [ ] 6.1 Apply firewall rules, install k3s, verify Traefik + local-path ready;
+- [x] 6.1 Apply firewall rules, install k3s, verify Traefik + local-path ready;
       copy kubeconfig and verify `kubectl` from laptop via SSH tunnel
-- [ ] 6.2 Create namespace and secrets (`core-api-secret`, TLS secret) per
+- [x] 6.2 Create namespace and secrets (`core-api-secret`, TLS secret) per
       runbook
-- [ ] 6.3 Apply postgres and kafka; verify both Ready and kafka survives pod
+- [x] 6.3 Apply postgres and kafka; verify both Ready and kafka survives pod
       delete without metadata mismatch
-- [ ] 6.4 Apply core-api; verify Flyway migrated + seeded, readiness gates
+- [x] 6.4 Apply core-api; verify Flyway migrated + seeded, readiness gates
       traffic, logs free of OTLP errors
-- [ ] 6.5 Apply frontend + ingress; verify https://hanatalk.online serves the
+- [x] 6.5 Apply frontend + ingress; verify https://hanatalk.online serves the
       SPA with valid TLS and HTTP redirects to HTTPS
 
 ## 7. End-to-end verification & docs
 
-- [ ] 7.1 Full M1 flow on https://hanatalk.online from a fresh browser:
+- [x] 7.1 Full M1 flow on https://hanatalk.online from a fresh browser:
       register → login → N5 course → lesson → mark complete → checkmark +
       progress bar; console free of CORS/mixed-content errors; deep-link a
       client route
-- [ ] 7.2 In-cluster Kafka consumer shows `user.registered` /
+- [x] 7.2 In-cluster Kafka consumer shows `user.registered` /
       `exercise.completed` events from the public flow; confirm API still
       succeeds with kafka pod scaled down (best-effort intact)
-- [ ] 7.3 Exercise the deploy loop once: push a trivial frontend change →
+- [x] 7.3 Exercise the deploy loop once: push a trivial frontend change →
       CI → rollout restart → visible live; then `kubectl rollout undo`
-- [ ] 7.4 Update docs: ROADMAP M2 status, DEVLOG session entry, root +
+- [x] 7.4 Update docs: ROADMAP M2 status, DEVLOG session entry, root +
       infra/k8s READMEs, CLAUDE.md verification section if commands changed

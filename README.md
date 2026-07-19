@@ -5,7 +5,7 @@ Portfolio project demonstrating polyglot backend engineering across
 Kotlin/Spring Boot, Python/FastAPI, and Go, tied together with Kafka and
 deployed on Kubernetes.
 
-**Domain:** hanatalk.online (Cloudflare-proxied, hosted on Oracle Cloud Always Free — deployment planned, see roadmap)
+**Live at [https://hanatalk.online](https://hanatalk.online)** — Cloudflare-proxied, single-node k3s on Oracle Cloud (A1 Flex, aarch64)
 
 ---
 
@@ -45,10 +45,10 @@ deployed on Kubernetes.
 | Service | Stack | Status |
 |---|---|---|
 | [core-api](core-api/) | Kotlin + Spring Boot + PostgreSQL | **Working.** JWT auth, courses/lessons, JLPT progress tracking, Kafka publishing, Prometheus metrics + OTel tracing, Flyway V1–V7, controller tests, CI |
-| [frontend](frontend/) | React + TypeScript (Vite) | **In progress** (Milestone 1) |
+| [frontend](frontend/) | React + TypeScript (Vite) | **Working.** Auth, course browsing, lessons, progress; nginx production image |
 | [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | Planned (Milestone 3) |
 | [event-worker](event-worker/) | Go + Kafka consumer | Planned (Milestone 4) |
-| infra (k8s on Oracle Always Free) | k3s, Kafka (KRaft), Cloudflare | Partial manifests; cluster provisioning is Milestone 2 |
+| [infra](infra/k8s/) (k8s on Oracle) | k3s, Kafka (KRaft), Cloudflare | **Deployed.** Single-node k3s, multi-arch GHCR images, Traefik + Origin CA TLS — see the [runbook](infra/k8s/README.md) |
 
 **Key design decisions:**
 
@@ -121,8 +121,8 @@ Postgres or Docker.
 
 | Milestone | Goal |
 |---|---|
-| **M1 — Vertical slice** | React frontend: register → log in → browse seeded N5 course → complete lessons → see progress. CORS, JWT in the browser. |
-| **M2 — Deployed & public** | k3s on Oracle Always Free, images pushed to GHCR from CI, Kafka in-cluster, Cloudflare TLS at hanatalk.online. |
+| **M1 — Vertical slice** ✅ | React frontend: register → log in → browse seeded N5 course → complete lessons → see progress. CORS, JWT in the browser. |
+| **M2 — Deployed & public** ✅ | k3s on Oracle Always Free, images pushed to GHCR from CI, Kafka in-cluster, Cloudflare TLS at hanatalk.online. |
 | **M3 — AI exercises** | Exercise domain in core-api (MCQ / fill-in-blank, graded in the gateway) + Python FastAPI generation service with LLM provider failover and MongoDB caching. |
 | **M4 — Async side effects** | Go event-worker: Kafka consumer group, streaks + leaderboard, read API proxied through the gateway. |
 | **M5 — Polish** | Cross-service OTel tracing, Grafana dashboards, admin role for content CRUD, architecture/decisions doc. |
@@ -134,7 +134,10 @@ Postgres or Docker.
 Each service has its own GitHub Actions workflow triggered only when its
 directory changes:
 
-- `.github/workflows/core-api.yml` — lint (ktlint), test, build jar, build Docker
-  image; pushes to GHCR on `main`.
+- `.github/workflows/core-api.yml` — lint (ktlint), test, build jar; multi-arch
+  (amd64+arm64) Docker image pushed to GHCR on `main`.
+- `.github/workflows/frontend.yml` — lint (oxlint), build; multi-arch nginx
+  image pushed to GHCR on `main`.
 
-Deploy-to-cluster steps land in Milestone 2.
+Deploys are a `kubectl rollout restart` away — see the
+[k8s runbook](infra/k8s/README.md) for the full deploy/rollback procedure.
