@@ -38,8 +38,8 @@ npm run build    # tsc -b && vite build
 docker compose up -d --build     # postgres :5432, kafka :9092, core-api :8080
 docker compose down -v           # reset: wipes DB, next start re-seeds via Flyway
 
-# production cluster (k3s on Oracle VM, host alias hanatalk-vm in ~/.ssh/config)
-ssh -fN -L 6443:127.0.0.1:6443 hanatalk-vm          # tunnel (6443 is not public)
+# production cluster (k3s on Oracle VM, host alias `oci` in ~/.ssh/config)
+ssh -fN -L 6443:127.0.0.1:6443 oci                  # tunnel (6443 is not public)
 KUBECONFIG=~/.kube/hanatalk.yaml kubectl -n hanatalk get pods
 # deploy: rollout restart; rollback: set image to a sha tag (NOT rollout undo —
 # no-op with :latest). Full runbook: infra/k8s/README.md
