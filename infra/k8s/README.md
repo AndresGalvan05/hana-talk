@@ -173,6 +173,24 @@ kubectl -n hanatalk exec -it kafka-0 -- \
 (`user.registered` for registrations.) Kafka is cluster-internal only
 (`kafka:9092`); there is deliberately no host/external listener.
 
+## 10. Ongoing maintenance (as configured 2026-07-19)
+
+- **Boot volume backups**: custom policy `hanatalk-weekly` (weekly incremental,
+  Mon 07:00 regional, 4-week retention — stays within the free tier's 5 backup
+  slots) is assigned to the boot volume; a manual full baseline
+  (`m2-baseline-2026-07-19`) exists. Restore path: console → Boot Volume
+  Backups → restore → attach to a new instance.
+- **OS security patches**: `dnf-automatic` runs daily on the VM
+  (`upgrade_type = security`, `apply_updates = yes`). Kernel updates still
+  need a manual `sudo reboot` — safe: an **OS reboot never re-enters the
+  capacity lottery** (only API/console stop or terminate does), and the
+  cluster self-recovers (verified through two reshape reboots).
+- **Weekly glance**: `ssh oci` → `k get pods -n hanatalk` (alias `k` =
+  `sudo /usr/local/bin/k3s kubectl`) and `df -h /` (30 GB boot volume is the
+  finite resource).
+- **k3s upgrades**: rerun the install script on demand (CVE or twice a year);
+  internal certs rotate on restart.
+
 ## Layout
 
 ```

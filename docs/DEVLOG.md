@@ -30,6 +30,19 @@ and root causes — so no lesson has to be relearned.
   (`kubectl set image ...:<sha>`) → verified reverted → roll-forward. Plain
   `rollout undo` is a no-op with `:latest` + `Always` — as documented.
 
+**Ops hardening (same day, after go-live)**
+- User reshaped the VM 4/24 → 2/12 → back to 4/24 via OCI CLI (confirmed
+  entitled to 4/24); IP survived, cluster **self-recovered from both reboots**
+  unattended. VM creation trick on record: A2 instance on trial credits →
+  CLI reshape to A1 (direct A1 creation kept hitting "Out of capacity");
+  trial credits expire ~2026-08-15, after which the trick bills.
+- Backups: custom `hanatalk-weekly` boot-volume policy (weekly incremental,
+  4-week retention, fits free tier's 5 slots) + manual full baseline taken.
+- `dnf-automatic` enabled on the VM (security-only, auto-apply, daily timer).
+- Docker CI actions bumped to Node 24 majors (qemu/buildx/login v4,
+  build-push v7) — both workflows green.
+- SSH alias renamed by user: `hanatalk-vm` → `oci` (CLAUDE.md updated).
+
 **Errors & lessons**
 - *GoDaddy ghost records:* hanatalk.online initially served a GoDaddy Website
   Builder 404 through Cloudflare — the zone import had copied old
