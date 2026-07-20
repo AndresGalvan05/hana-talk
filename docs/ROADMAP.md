@@ -10,7 +10,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M1 — Vertical slice (frontend on existing API) | ✅ Done 2026-07-14 |
 | M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
-| M3 — AI exercises (core-api domain + ai-exercise-svc) | Blocked on: user procures LLM API keys |
+| M3 — AI exercises (core-api domain + ai-exercise-svc) | In progress — exercise domain done 2026-07-20 (seeded content); AI generation blocked on: user procures LLM API keys |
 | M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
 | M5 — Polish (tracing, dashboards, admin role, docs) | Last |
 
@@ -43,12 +43,20 @@ progress updates → `exercise.completed` with `source=EXERCISE`.
 **Interview story:** polyglot sync boundary — Kotlin gateway calls Python/FastAPI
 LLM service with provider failover + MongoDB cache; grading stays in the gateway.
 **Needs from user:** LLM API keys (Groq / OpenRouter / Gemini free tiers) —
-procurement is part of this milestone's kickoff.
-**Order inside milestone:** (1) exercise domain + attempts/grading in core-api
-(MCQ + fill-in-blank, graded against stored answers — no LLM needed to grade);
-(2) ai-exercise-svc with ONE provider + Mongo cache + strict JSON-schema
-validation; (3) failover chain with simulated-failure tests; (4) frontend
-exercise UI.
+procurement is part of this milestone's kickoff, in progress.
+**Order inside milestone:**
+1. ✅ **Done 2026-07-20** (`add-exercise-domain`): exercise domain +
+   attempts/grading in core-api — `Exercise`/`ExerciseAttempt` entities, MCQ +
+   fill-in-blank graded synchronously against a stored answer (no LLM), a
+   correct attempt reuses the existing `ProgressService.markComplete` with
+   `CompletionSource.EXERCISE`, Flyway-seeded placeholder content for the N5
+   lessons. See the `add-exercise-domain` OpenSpec change (archived once
+   applied) for details.
+2. `ai-exercise-svc` with ONE provider + Mongo cache + strict JSON-schema
+   validation — writes into the domain from step 1; blocked on LLM keys.
+3. Failover chain with simulated-failure tests.
+4. Frontend exercise UI — deferred until step 2 exists, so it's built once
+   against real generated content instead of the placeholder seed.
 **Cut:** streaming, personalization, spaced repetition, LLM-graded free text.
 
 ## M4 — Async side effects
@@ -80,3 +88,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-19 | Oracle quietly halved Always Free A1 to 2 OCPU/12 GB (2026-06-15, no announcement). Our VM landed at the old 4/24 size — user to watch Cost Analysis + budget alert; stack fits in 2/12 if a resize is ever forced. |
 | 2026-07-19 | VM shipped with Oracle Linux 9 (not planned Ubuntu). Kept: recreating risks losing the hard-won A1 capacity slot; k3s supports OL9 (k3s-selinux auto-installed, firewalld disabled per k3s docs — OCI VCN security list is the single firewall, 22/80/443 only). |
 | 2026-07-19 | GHCR packages made public (repo is public; images hold only compiled artifacts; avoids imagePullSecret PAT rotation). Firebase considered and rejected as hosting alternative during the capacity drought — cannot run the fixed stack, would dissolve the k3s/Kafka story. |
+| 2026-07-20 | M3 split into an exercise-domain slice (no LLM needed — grading is exact-match against seeded answers) and an ai-exercise-svc slice (needs keys), so the grading/progress plumbing didn't have to be designed under LLM-integration pressure. Frontend exercise UI deferred to the ai-exercise-svc slice rather than built against placeholder seed content. |

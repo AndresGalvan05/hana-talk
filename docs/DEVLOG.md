@@ -3,6 +3,47 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-20 — M3 kickoff: exercise domain in core-api (no LLM yet)
+
+**Shipped**
+- OpenSpec change `add-exercise-domain`: the first M3 slice, scoped to need
+  zero LLM keys while the user procures them. New `exercise` domain package
+  (`Exercise`, `ExerciseAttempt`, repositories), `ExerciseService` (exact-match
+  grading — verbatim for MCQ, trim+lowercase for fill-in-blank),
+  `ExerciseController` (`GET /api/lessons/{lessonId}/exercises`,
+  `POST /api/exercises/{exerciseId}/attempts`), Flyway `V8` (tables) + `V9`
+  (4 placeholder exercises across 2 N5 lessons).
+- Reused the existing completion mechanism rather than building a second one:
+  a correct attempt calls the same `ProgressService.markComplete(...)` the
+  manual "Mark as complete" button uses, with a new
+  `CompletionSource.EXERCISE`. One `user_lesson_progress` table, one
+  `exercise.completed` Kafka event shape, no divergent completion state.
+- `correctAnswer` never serializes to the client — enforced by a separate
+  `ExerciseResponse` DTO, not `@JsonIgnore` on the entity (matches the
+  existing DTO-vs-entity separation in `LessonDtos`/`CourseDtos`).
+- Tests: `ExerciseServiceTest` (plain Mockito unit test, first of its kind in
+  this codebase — all prior tests were `@WebMvcTest` controller tests;
+  needed to directly verify grading logic and the `markComplete` delegation
+  args, which a controller test with a mocked service can't reach) +
+  `ExerciseControllerTest` (`@WebMvcTest`, matches `ProgressControllerTest`'s
+  pattern). `ktlintCheck test bootJar` all green.
+- End-to-end verified via `docker compose up -d --build`: registered a fresh
+  user, listed lesson 1's exercises (options shown, no answer field),
+  submitted one incorrect + one correct MCQ + one correct fill-in-blank
+  (different case/whitespace, still graded correct), confirmed
+  `GET /api/courses/{id}/progress` shows the lesson complete, and the Kafka
+  consumer shows the `exercise.completed` event with `"source":"EXERCISE"`.
+  Migration ran cleanly against an existing V7 database (not just a fresh one).
+- Explicitly deferred to a follow-up change: `ai-exercise-svc`, provider
+  failover, MongoDB, frontend exercise UI — all blocked on LLM key
+  procurement (Groq/Gemini/OpenRouter), which the user has in progress.
+
+**Errors & lessons**
+- None — went from proposal to green build to verified live flow without a
+  wrong turn, largely because the design phase read the actual
+  `ProgressService`/`EventPublisher`/entity code first instead of guessing
+  at conventions.
+
 ## 2026-07-19 — M2 completed: live at https://hanatalk.online
 
 **Shipped**
