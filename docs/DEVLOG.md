@@ -3,6 +3,55 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-20 — M3 step 2: ai-exercise-svc (real LLM-generated exercises)
+
+**Shipped**
+- OpenSpec change `ai-exercise-svc`: a new Python/FastAPI service
+  (`ai-exercise-svc/`) that generates lesson exercises via Gemini
+  (`google-genai`'s Interactions API, structured-output mode with a Pydantic
+  schema — the SDK validates the model's JSON against the schema itself,
+  raising `ValidationError`/`JSONDecodeError` on a bad response) and caches
+  the result in MongoDB keyed by lesson id. Single provider only for this
+  slice, by design — Groq and OpenRouter keys exist but are reserved for the
+  step-3 failover change so this slice's plumbing wasn't designed under
+  multi-provider pressure.
+- core-api's `ExerciseService.listByLesson` now calls out to
+  `ai-exercise-svc` (new `AiExerciseSvcClient`, a `RestClient` with an
+  explicit read/connect timeout — this call is on the user-facing critical
+  path, not best-effort like Kafka) whenever a lesson has zero `Exercise`
+  rows, persists what comes back as ordinary `Exercise` entities, and serves
+  it identically to Flyway-seeded content. A downstream failure surfaces as
+  a clean 502, not a silently empty list.
+- Infra: `mongo` + `ai-exercise-svc` services added to
+  `infra/docker-compose.yml`; new `ai-exercise-svc/Dockerfile` and
+  `.github/workflows/ai-exercise-svc.yml` (ruff + pytest + multi-arch GHCR
+  push, mirroring `core-api.yml`/`frontend.yml`).
+- Verified live against the real Gemini API (not mocked): a lesson with no
+  exercises triggered a real generation call, the response was schema-valid
+  and persisted, grading/`exercise.completed` (`source=EXERCISE`)/progress
+  all worked identically to seeded exercises, a repeat request for the same
+  lesson was served from `ai-exercise-svc`'s Mongo cache in milliseconds,
+  and the two already-seeded lessons made zero calls to `ai-exercise-svc`.
+
+**Errors & lessons**
+- *Timeout tuned from theory, not measurement:* the design's placeholder
+  15s client-side timeout turned out to be right at the edge of a real
+  first-generation Gemini call's actual latency (~15s), so the very first
+  live verification attempt hit the timeout and returned a 502 — the
+  request to `ai-exercise-svc` had actually succeeded server-side (FastAPI
+  kept running the synchronous handler to completion, including the Mongo
+  cache write, even after the client gave up), so the *second* attempt was
+  served instantly from cache, momentarily masking the root cause. Fixed by
+  measuring the real call directly (`curl` straight to `ai-exercise-svc`,
+  bypassing core-api's timeout) and raising the timeout to 45s. Lesson:
+  don't guess a synchronous cross-service timeout from a comment — measure
+  the real call once before shipping the number.
+- *Secrets stayed clean throughout:* the LLM keys file
+  (`~/.config/dev-projects/llm-keys.env`) was never read by any tool in this
+  session — `docker-compose.yml` references it only via
+  `${LLM_KEYS_ENV_PATH}`, resolved from a gitignored `infra/.env`, so the
+  tracked compose file never hardcodes a machine-specific path either.
+
 ## 2026-07-20 — M3 kickoff: exercise domain in core-api (no LLM yet)
 
 **Shipped**

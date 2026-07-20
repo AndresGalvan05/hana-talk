@@ -1,0 +1,27 @@
+from fastapi import APIRouter, HTTPException
+
+from app import cache
+from app.generation import GenerationFailedError, generate_exercises
+from app.schemas import GenerateRequest, GenerationResult
+
+router = APIRouter()
+
+
+@router.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@router.post("/generate", response_model=GenerationResult)
+def generate(request: GenerateRequest) -> GenerationResult:
+    cached = cache.get_cached(request.lesson_id)
+    if cached is not None:
+        return cached
+
+    try:
+        result = generate_exercises(request.content, request.jlpt_level)
+    except GenerationFailedError as exc:
+        raise HTTPException(status_code=502, detail=f"generation failed: {exc}") from exc
+
+    cache.put_cached(request.lesson_id, result)
+    return result

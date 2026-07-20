@@ -10,7 +10,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M1 — Vertical slice (frontend on existing API) | ✅ Done 2026-07-14 |
 | M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
-| M3 — AI exercises (core-api domain + ai-exercise-svc) | In progress — exercise domain done 2026-07-20 (seeded content); AI generation blocked on: user procures LLM API keys |
+| M3 — AI exercises (core-api domain + ai-exercise-svc) | In progress — exercise generation (ai-exercise-svc, Gemini + MongoDB cache) done 2026-07-20; failover chain + frontend UI remain |
 | M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
 | M5 — Polish (tracing, dashboards, admin role, docs) | Last |
 
@@ -52,8 +52,16 @@ procurement is part of this milestone's kickoff, in progress.
    `CompletionSource.EXERCISE`, Flyway-seeded placeholder content for the N5
    lessons. See the `add-exercise-domain` OpenSpec change (archived once
    applied) for details.
-2. `ai-exercise-svc` with ONE provider + Mongo cache + strict JSON-schema
-   validation — writes into the domain from step 1; blocked on LLM keys.
+2. ✅ **Done 2026-07-20** (`ai-exercise-svc`): new Python/FastAPI service,
+   one provider (Gemini, via `google-genai`'s structured-output mode) +
+   MongoDB cache keyed by lesson id + strict Pydantic schema validation.
+   core-api's `ExerciseService.listByLesson` calls it synchronously
+   whenever a lesson has zero `Exercise` rows, persists what comes back,
+   and serves it identically to seeded content — verified live: real
+   generation (~15s first call), cache hit on repeat (~ms), correct
+   grading/progress/`exercise.completed` event, and no impact on the
+   already-seeded lessons. See the `ai-exercise-svc` OpenSpec change
+   (archived once applied) for details.
 3. Failover chain with simulated-failure tests.
 4. Frontend exercise UI — deferred until step 2 exists, so it's built once
    against real generated content instead of the placeholder seed.
@@ -89,3 +97,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-19 | VM shipped with Oracle Linux 9 (not planned Ubuntu). Kept: recreating risks losing the hard-won A1 capacity slot; k3s supports OL9 (k3s-selinux auto-installed, firewalld disabled per k3s docs — OCI VCN security list is the single firewall, 22/80/443 only). |
 | 2026-07-19 | GHCR packages made public (repo is public; images hold only compiled artifacts; avoids imagePullSecret PAT rotation). Firebase considered and rejected as hosting alternative during the capacity drought — cannot run the fixed stack, would dissolve the k3s/Kafka story. |
 | 2026-07-20 | M3 split into an exercise-domain slice (no LLM needed — grading is exact-match against seeded answers) and an ai-exercise-svc slice (needs keys), so the grading/progress plumbing didn't have to be designed under LLM-integration pressure. Frontend exercise UI deferred to the ai-exercise-svc slice rather than built against placeholder seed content. |
+| 2026-07-20 | `ai-exercise-svc` picked Gemini as the single provider for this slice (native structured/JSON-schema output) over Groq/OpenRouter; both remaining keys are unused until the step-3 failover change. LLM keys stay outside the repo (`~/.config/dev-projects/llm-keys.env`) and are wired into `docker-compose.yml` via `${LLM_KEYS_ENV_PATH}` variable substitution from a gitignored `infra/.env`, never a hardcoded path in a tracked file. |

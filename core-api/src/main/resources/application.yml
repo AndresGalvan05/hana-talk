@@ -47,3 +47,8 @@ jwt:
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+ai-exercise-svc:
+  url: ${AI_EXERCISE_SVC_URL:http://localhost:8000}
+  # A real Gemini generation call measured ~15s end-to-end; give real headroom.
+  timeout-seconds: ${AI_EXERCISE_SVC_TIMEOUT_SECONDS:45}

@@ -81,9 +81,10 @@ Unlike Kafka publishing, this call is on the request's critical path (the
 user is waiting for exercises to display) — no try/catch-and-continue. A
 failure here is a real 5xx to the frontend, which is correct: there's no
 sensible "keep going without exercises" fallback for a request whose entire
-purpose is fetching exercises. A reasonable timeout (e.g. 15s, generation
-can be slow) is set on core-api's HTTP client to avoid indefinitely hanging
-the user-facing request.
+purpose is fetching exercises. A timeout (45s — a real first-generation
+Gemini call measured ~15s end-to-end during verification, so this leaves
+real headroom) is set on core-api's HTTP client to avoid indefinitely
+hanging the user-facing request.
 
 **Secrets**: `ai-exercise-svc` reads `GEMINI_API_KEY` from its process
 environment. Local dev: `env_file: /home/ando/.config/dev-projects/llm-keys.env`

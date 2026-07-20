@@ -1,0 +1,71 @@
+name: ai-exercise-svc
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ai-exercise-svc/**"
+      - ".github/workflows/ai-exercise-svc.yml"
+  pull_request:
+    paths:
+      - "ai-exercise-svc/**"
+      - ".github/workflows/ai-exercise-svc.yml"
+
+env:
+  IMAGE: ghcr.io/andresgalvan05/hana-talk/ai-exercise-svc
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: ai-exercise-svc
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Test
+        run: uv run pytest -q
+
+      # Multi-arch: the k3s node (Oracle A1 Flex) is arm64, dev machines are
+      # amd64. QEMU covers the per-arch dependency install inside the image.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build multi-arch image (push on main)
+        uses: docker/build-push-action@v7
+        with:
+          context: ai-exercise-svc
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest

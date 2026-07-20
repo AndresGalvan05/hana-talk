@@ -52,11 +52,42 @@ services:
       DB_USERNAME: hanatalk
       DB_PASSWORD: hanatalk
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      AI_EXERCISE_SVC_URL: http://ai-exercise-svc:8000
     depends_on:
       postgres:
         condition: service_healthy
       kafka:
         condition: service_healthy
 
+  mongo:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ai-exercise-svc:
+    build:
+      context: ../ai-exercise-svc
+    ports:
+      - "8000:8000"
+    # Provider API keys live outside the repo, at a path only known on this
+    # machine — set via LLM_KEYS_ENV_PATH in a local, gitignored infra/.env
+    # (see infra/.env.example). Never hardcode a real path here: this file
+    # is tracked and public.
+    env_file:
+      - ${LLM_KEYS_ENV_PATH}
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  mongo_data:
