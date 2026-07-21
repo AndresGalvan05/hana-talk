@@ -3,6 +3,67 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-20 — M3 step 3: provider failover chain (Gemini → Groq → OpenRouter)
+
+**Shipped**
+- OpenSpec change `provider-failover-chain`: `ai-exercise-svc`'s
+  `app/generation.py` now tries providers in a fixed order — Gemini, then
+  Groq, then OpenRouter — falling through to the next on *any* failure
+  (transport error, timeout, or a response that fails
+  `GenerationResult`'s Pydantic validation). New `app/providers.py` holds
+  one function per provider (`call_gemini`/`call_groq`/`call_openrouter`),
+  all returning raw JSON text so the same validation call applies to all
+  three uniformly.
+- Groq and OpenRouter both speak an OpenAI-compatible chat completions API,
+  so one `_call_openai_compatible` helper (via the `openai` SDK's
+  `base_url` override) covers both — only Gemini needed its own code path.
+  Model IDs were looked up against each provider's live docs rather than
+  guessed: **Groq** uses `openai/gpt-oss-20b` (currently the only model
+  with Groq's *strict* JSON-schema mode — `strict: true` in
+  `response_format`, a real schema guarantee, not just "valid JSON").
+  **OpenRouter** uses `google/gemma-4-26b-a4b-it:free` — free tier,
+  structured-outputs-capable, and deliberately a different model family
+  from Groq's gpt-oss so a systemic issue with one weight family doesn't
+  take down both fallbacks at once.
+- Simulated-failure unit tests (`tests/test_generation.py`, all providers
+  mocked, no real API calls): Gemini succeeds → Groq/OpenRouter never
+  called; Gemini fails → Groq called, succeeds, OpenRouter never called;
+  Gemini and Groq both fail → OpenRouter succeeds; all three fail →
+  `GenerationFailedError` (existing 502 mapping unchanged); a
+  schema-valid-JSON-but-invalid-shape response (MCQ with empty options) is
+  treated exactly like a transport failure and falls through.
+- Verified live: forced a real Gemini failure (invalid model name),
+  confirmed Groq produced valid, persisted exercises through the real
+  fallback path — not just the mocked tests.
+- core-api needed **no changes** — `AiExerciseSvcClient`/`ExerciseService`
+  only see `ai-exercise-svc`'s `/generate` contract, unaware anything
+  changed behind it. One config change: `ai-exercise-svc.timeout-seconds`
+  raised 45s → 90s (see below).
+
+**Errors & lessons**
+- *Timeout needed a second measurement:* the forced Gemini failure (bad
+  model name) took **~60 seconds** to actually fail before falling through
+  to Groq — apparently retried internally before giving up — pushing the
+  full round trip to ~62s, well past the 45s timeout set in the previous
+  session (`ai-exercise-svc` change) from a single successful-call
+  measurement. A timeout tuned from the happy path doesn't cover a failure
+  path with different latency characteristics; raised to 90s to leave real
+  headroom for a Gemini-fails-then-Groq-succeeds round trip, and possibly
+  a double fallback to OpenRouter.
+- *Key exposure during verification, self-caught, not user-caught:* while
+  checking that the container's environment had the right variables set, a
+  `sed 's/=.*KEY.*/=<redacted>/'` command was meant to redact secret
+  values before printing — but the pattern only matched if the *value*
+  contained the literal text "KEY"; only the *variable name* does. Both
+  `GROQ_API_KEY` and `OPENROUTER_API_KEY` printed in full into a
+  background-task output file, which was then read into the session
+  before the mistake was noticed. Both keys were rotated immediately;
+  `GEMINI_API_KEY` was never touched this way and needed no rotation.
+  Lesson: redacting env var *values* by pattern-matching on the *name*
+  doesn't work — either don't print potentially-secret env output at all,
+  or filter by variable name (`cut -d= -f1`) instead of trying to mask the
+  value.
+
 ## 2026-07-20 — M3 step 2: ai-exercise-svc (real LLM-generated exercises)
 
 **Shipped**

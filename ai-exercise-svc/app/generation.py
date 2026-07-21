@@ -1,14 +1,9 @@
-import json
-
-from google import genai
-from pydantic import ValidationError
-
-from app.config import settings
+from app.providers import call_gemini, call_groq, call_openrouter
 from app.schemas import GenerationResult
 
 
 class GenerationFailedError(Exception):
-    """The provider response did not conform to the exercise schema."""
+    """No provider in the chain produced a schema-conforming response."""
 
 
 _PROMPT_TEMPLATE = """\
@@ -29,30 +24,23 @@ Lesson content:
 \"\"\"
 """
 
-_client: genai.Client | None = None
-
-
-def _get_client() -> genai.Client:
-    global _client
-    if _client is None:
-        _client = genai.Client()
-    return _client
-
 
 def generate_exercises(content: str, jlpt_level: str) -> GenerationResult:
     prompt = _PROMPT_TEMPLATE.format(jlpt_level=jlpt_level, content=content)
+    schema = GenerationResult.model_json_schema()
+    last_error: Exception | None = None
 
-    interaction = _get_client().interactions.create(
-        model=settings.gemini_model,
-        input=prompt,
-        response_format={
-            "type": "text",
-            "mime_type": "application/json",
-            "schema": GenerationResult.model_json_schema(),
-        },
-    )
+    # Providers are named here (not a module-level list) so each name is
+    # re-resolved from this module's globals on every call — that's what
+    # lets tests patch app.generation.call_gemini/call_groq/call_openrouter
+    # and actually affect the chain, instead of patching a stale reference
+    # captured once at import time.
+    for call_provider in (call_gemini, call_groq, call_openrouter):
+        try:
+            raw = call_provider(prompt, schema)
+            return GenerationResult.model_validate_json(raw)
+        except Exception as exc:  # noqa: BLE001 - intentional: any failure, transport or schema, falls through to the next provider
+            last_error = exc
+            continue
 
-    try:
-        return GenerationResult.model_validate_json(interaction.output_text)
-    except (ValidationError, json.JSONDecodeError) as exc:
-        raise GenerationFailedError(str(exc)) from exc
+    raise GenerationFailedError(str(last_error)) from last_error

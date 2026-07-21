@@ -46,7 +46,7 @@ deployed on Kubernetes.
 |---|---|---|
 | [core-api](core-api/) | Kotlin + Spring Boot + PostgreSQL | **Working.** JWT auth, courses/lessons, JLPT progress tracking, Kafka publishing, Prometheus metrics + OTel tracing, Flyway V1–V7, controller tests, CI |
 | [frontend](frontend/) | React + TypeScript (Vite) | **Working.** Auth, course browsing, lessons, progress; nginx production image |
-| [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | **Working.** Generates exercises via Gemini (structured output), Mongo cache per lesson; called synchronously by core-api. Provider failover (M3 step 3) and frontend UI (step 4) still planned |
+| [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | **Working.** Gemini → Groq → OpenRouter provider failover chain, Mongo cache per lesson; called synchronously by core-api. Frontend exercise UI (M3 step 4) still planned |
 | [event-worker](event-worker/) | Go + Kafka consumer | Planned (Milestone 4) |
 | [infra](infra/k8s/) (k8s on Oracle) | k3s, Kafka (KRaft), Cloudflare | **Deployed.** Single-node k3s, multi-arch GHCR images, Traefik + Origin CA TLS — see the [runbook](infra/k8s/README.md) |
 

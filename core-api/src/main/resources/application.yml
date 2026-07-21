@@ -50,5 +50,9 @@ cors:
 
 ai-exercise-svc:
   url: ${AI_EXERCISE_SVC_URL:http://localhost:8000}
-  # A real Gemini generation call measured ~15s end-to-end; give real headroom.
-  timeout-seconds: ${AI_EXERCISE_SVC_TIMEOUT_SECONDS:45}
+  # ai-exercise-svc now falls back Gemini -> Groq -> OpenRouter internally
+  # (provider-failover-chain). A forced Gemini failure measured ~60s before
+  # falling through to Groq, plus Groq's own generation time — 45s was no
+  # longer enough headroom even for a single-fallback path, let alone a
+  # double fallback to OpenRouter.
+  timeout-seconds: ${AI_EXERCISE_SVC_TIMEOUT_SECONDS:90}

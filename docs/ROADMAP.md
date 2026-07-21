@@ -10,7 +10,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M1 — Vertical slice (frontend on existing API) | ✅ Done 2026-07-14 |
 | M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
-| M3 — AI exercises (core-api domain + ai-exercise-svc) | In progress — exercise generation (ai-exercise-svc, Gemini + MongoDB cache) done 2026-07-20; failover chain + frontend UI remain |
+| M3 — AI exercises (core-api domain + ai-exercise-svc) | In progress — exercise generation + provider failover chain (Gemini → Groq → OpenRouter) done 2026-07-20; frontend exercise UI remains |
 | M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
 | M5 — Polish (tracing, dashboards, admin role, docs) | Last |
 
@@ -62,7 +62,15 @@ procurement is part of this milestone's kickoff, in progress.
    grading/progress/`exercise.completed` event, and no impact on the
    already-seeded lessons. See the `ai-exercise-svc` OpenSpec change
    (archived once applied) for details.
-3. Failover chain with simulated-failure tests.
+3. ✅ **Done 2026-07-20** (`provider-failover-chain`): `ai-exercise-svc` now
+   tries Gemini → Groq (`openai/gpt-oss-20b`, strict JSON-schema mode) →
+   OpenRouter (`google/gemma-4-26b-a4b-it:free`) in order, falling through
+   on any failure — transport error or schema-validation failure — with
+   simulated-failure unit tests covering every fallback path. core-api is
+   unaware of the chain (unchanged). Verified live with a forced Gemini
+   failure: Groq produced valid exercises; measuring that real failure
+   path (~60s before falling through) led to raising core-api's
+   `ai-exercise-svc.timeout-seconds` from 45s to 90s.
 4. Frontend exercise UI — deferred until step 2 exists, so it's built once
    against real generated content instead of the placeholder seed.
 **Cut:** streaming, personalization, spaced repetition, LLM-graded free text.
@@ -98,3 +106,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-19 | GHCR packages made public (repo is public; images hold only compiled artifacts; avoids imagePullSecret PAT rotation). Firebase considered and rejected as hosting alternative during the capacity drought — cannot run the fixed stack, would dissolve the k3s/Kafka story. |
 | 2026-07-20 | M3 split into an exercise-domain slice (no LLM needed — grading is exact-match against seeded answers) and an ai-exercise-svc slice (needs keys), so the grading/progress plumbing didn't have to be designed under LLM-integration pressure. Frontend exercise UI deferred to the ai-exercise-svc slice rather than built against placeholder seed content. |
 | 2026-07-20 | `ai-exercise-svc` picked Gemini as the single provider for this slice (native structured/JSON-schema output) over Groq/OpenRouter; both remaining keys are unused until the step-3 failover change. LLM keys stay outside the repo (`~/.config/dev-projects/llm-keys.env`) and are wired into `docker-compose.yml` via `${LLM_KEYS_ENV_PATH}` variable substitution from a gitignored `infra/.env`, never a hardcoded path in a tracked file. |
+| 2026-07-20 | Groq/OpenRouter model IDs picked from live docs at implementation time rather than fixed in the design: `openai/gpt-oss-20b` (Groq's only strict-JSON-schema-capable model) and `google/gemma-4-26b-a4b-it:free` (OpenRouter, deliberately a different model family for infra diversity). `ai-exercise-svc.timeout-seconds` raised 45s → 90s after measuring a real forced-failover call. A key-redaction command mistake during live verification exposed the real Groq/OpenRouter key values in a tool-output file read into the session — both keys were rotated immediately; `GEMINI_API_KEY` was unaffected. |
