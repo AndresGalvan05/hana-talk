@@ -2,8 +2,12 @@ package online.hanatalk
 
 import online.hanatalk.api.UserProfileController
 import online.hanatalk.api.dto.UserProfileResponse
+import online.hanatalk.client.EventWorkerClient
+import online.hanatalk.client.StreakResponse
 import online.hanatalk.domain.JlptLevel
 import online.hanatalk.domain.Language
+import online.hanatalk.domain.user.User
+import online.hanatalk.domain.user.UserRepository
 import online.hanatalk.security.JwtService
 import online.hanatalk.security.SecurityConfig
 import online.hanatalk.security.UserDetailsServiceImpl
@@ -20,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
+import org.springframework.web.server.ResponseStatusException
 
 @WebMvcTest(UserProfileController::class, excludeAutoConfiguration = [UserDetailsServiceAutoConfiguration::class])
 @Import(SecurityConfig::class)
@@ -29,6 +34,12 @@ class UserProfileControllerTest {
 
     @MockitoBean
     lateinit var userProfileService: UserProfileService
+
+    @MockitoBean
+    lateinit var eventWorkerClient: EventWorkerClient
+
+    @MockitoBean
+    lateinit var userRepository: UserRepository
 
     @MockitoBean
     lateinit var jwtService: JwtService
@@ -42,6 +53,8 @@ class UserProfileControllerTest {
             nativeLanguage = Language.ENGLISH,
             startingLevel = JlptLevel.N5,
         )
+
+    private val testUser = User(email = "taro@example.com", username = "taro", passwordHash = "hash")
 
     @Test
     fun `get profile requires auth`() {
@@ -84,5 +97,37 @@ class UserProfileControllerTest {
             status { isOk() }
             jsonPath("$.startingLevel") { value("N4") }
         }
+    }
+
+    @Test
+    fun `get streak requires auth`() {
+        mockMvc.get("/api/users/me/streak")
+            .andExpect { status { isUnauthorized() } }
+    }
+
+    @Test
+    @WithMockUser(username = "taro@example.com")
+    fun `get streak proxies through event-worker`() {
+        given(userRepository.findByEmail("taro@example.com")).willReturn(testUser)
+        given(eventWorkerClient.getStreak(testUser.id))
+            .willReturn(StreakResponse(userId = testUser.id.toString(), currentStreak = 3, lastActiveDate = "2026-07-20"))
+
+        mockMvc.get("/api/users/me/streak")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.currentStreak") { value(3) }
+                jsonPath("$.lastActiveDate") { value("2026-07-20") }
+            }
+    }
+
+    @Test
+    @WithMockUser(username = "taro@example.com")
+    fun `get streak surfaces a downstream event-worker failure as a 5xx`() {
+        given(userRepository.findByEmail("taro@example.com")).willReturn(testUser)
+        given(eventWorkerClient.getStreak(testUser.id))
+            .willThrow(ResponseStatusException(org.springframework.http.HttpStatus.BAD_GATEWAY, "event-worker call failed"))
+
+        mockMvc.get("/api/users/me/streak")
+            .andExpect { status { isBadGateway() } }
     }
 }

@@ -1,6 +1,6 @@
 # event-worker
 
-**Status:** Not started — Milestone 4
+**Status:** Working — Milestone 4 done 2026-07-20
 
 **Stack:** Go, Apache Kafka (KRaft mode)
 

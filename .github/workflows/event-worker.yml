@@ -1,0 +1,69 @@
+name: event-worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "event-worker/**"
+      - ".github/workflows/event-worker.yml"
+  pull_request:
+    paths:
+      - "event-worker/**"
+      - ".github/workflows/event-worker.yml"
+
+env:
+  IMAGE: ghcr.io/andresgalvan05/hana-talk/event-worker
+
+jobs:
+  vet-test-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: event-worker
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: event-worker/go.mod
+          cache-dependency-path: event-worker/go.sum
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build ./...
+
+      # Go cross-compiles natively via GOOS/GOARCH (see Dockerfile), so
+      # unlike core-api/ai-exercise-svc, QEMU here only covers Docker's own
+      # manifest handling, never an emulated compiler/interpreter.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build multi-arch image (push on main)
+        uses: docker/build-push-action@v7
+        with:
+          context: event-worker
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest

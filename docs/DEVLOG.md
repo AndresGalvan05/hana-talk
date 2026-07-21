@@ -3,6 +3,77 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-20 — M4: Go event-worker — streaks, leaderboard
+
+**Shipped**
+- OpenSpec change `event-worker`: first Go service in the repo, consuming
+  `user.registered`/`exercise.completed` (both live since M2 with zero
+  consumers until now). Minimal deps by design: `kafka-go` (pure Go, no
+  cgo/librdkafka), `pgx/v5` (plain SQL, no ORM), stdlib `net/http`'s
+  Go 1.22+ method+path `ServeMux` (no router dependency), `golang-migrate`
+  for schema migrations embedded via `//go:embed`.
+- **Idempotency via a natural key, not a dedup ledger**: a
+  `daily_activity(user_id, activity_date)` table with a UNIQUE constraint
+  absorbs both same-day multiple completions and Kafka-redelivered
+  duplicates via `ON CONFLICT DO NOTHING` — verified live by hard-killing
+  the container mid-flow (`docker kill`) right after a completion and
+  confirming the eventual state was correct with no duplicate rows after
+  it rejoined the consumer group.
+- **Fan-in concurrency pattern**: one goroutine per topic reader
+  (`user.registered`, `exercise.completed`), each fetching independently
+  and sending a job to a single DB-writing goroutine over a channel;
+  offsets are only committed after that goroutine confirms the write
+  succeeded — a reader that gets a processing error does not commit,
+  guaranteeing at-least-once redelivery on failure.
+- **Own `users` projection, not cross-schema reads**: `event-worker`
+  builds a local `(user_id, username)` table from `user.registered`
+  rather than querying core-api's `users` table directly, even though
+  both live in the same Postgres instance — a deliberate ownership
+  boundary, not a technical constraint. Verified the leaderboard's
+  username comes from this projection, not core-api's database.
+- core-api: `UserProfileController` gained `GET /me/streak`; new
+  `LeaderboardController` for `GET /api/leaderboard`; both delegate to a
+  new `EventWorkerClient` (same `RestClient`-with-timeout shape as
+  `AiExerciseSvcClient` from M3). Both endpoints are authenticated by
+  default via `SecurityConfig`'s existing catch-all — zero
+  `SecurityConfig` changes needed, same pattern as M3's exercise
+  endpoints.
+- Infra: new `event-worker` compose service, a Dockerfile that
+  cross-compiles natively via `GOOS`/`GOARCH` (no QEMU-under-build
+  workaround needed, unlike core-api's Gradle build), and
+  `.github/workflows/event-worker.yml` (`go vet`, `go test`, multi-arch
+  build + push to GHCR).
+- Verified live end-to-end: registered a user, completed three lessons
+  across two container lifetimes (including one hard-kill), confirmed
+  `GET /api/users/me/streak` correctly showed a streak of 1 (same UTC
+  day, so all three completions collapsed into a single activity row,
+  exactly as designed), confirmed the same for `GET /api/leaderboard`
+  with the correct username, and confirmed a brand-new user with zero
+  completions gets a 0 streak, not an error.
+
+**Errors & lessons**
+- *golang-migrate's postgres driver doesn't create the target schema*:
+  passing `SchemaName: "event_worker"` to `postgres.WithInstance` assumes
+  the schema already exists — it failed with `schema "event_worker" does
+  not exist` on first run, because the driver only creates its own
+  `schema_migrations` tracking table, not the schema itself. Fixed by
+  running `CREATE SCHEMA IF NOT EXISTS event_worker` over the raw
+  connection before handing it to the migrate driver.
+- *A silent 20-30s gap after every consumer restart, initially
+  mistaken for a bug*: the first live verification attempt showed no
+  streak update at all after a completion, with zero relevant log output
+  — looked like the consumer wasn't running. It was: Kafka's consumer
+  group rebalance protocol takes a session-timeout window before a new
+  group member (a freshly restarted container) gets partitions assigned
+  and starts actually fetching, even though the reader had already logged
+  "starting consumer." Adding a temporary debug log line
+  (`fetched message`, later downgraded to `slog.Debug`) made this
+  directly observable rather than assumed, and confirmed both queued
+  messages were correctly picked up ~20s later. Lesson: a consumer
+  process being "up" and a consumer group having "usable partition
+  assignment" are different moments — don't declare a Kafka consumer
+  broken from a quiet log within the first ~30s of its life.
+
 ## 2026-07-20 — M3 step 4: exercise practice UI — M3 fully done
 
 **Shipped**

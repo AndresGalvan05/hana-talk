@@ -47,7 +47,7 @@ deployed on Kubernetes.
 | [core-api](core-api/) | Kotlin + Spring Boot + PostgreSQL | **Working.** JWT auth, courses/lessons, JLPT progress tracking, Kafka publishing, Prometheus metrics + OTel tracing, Flyway V1–V7, controller tests, CI |
 | [frontend](frontend/) | React + TypeScript (Vite) | **Working.** Auth, course browsing, lessons, progress, LLM-generated practice exercises; nginx production image |
 | [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | **Working.** Gemini → Groq → OpenRouter provider failover chain, Mongo cache per lesson; called synchronously by core-api |
-| [event-worker](event-worker/) | Go + Kafka consumer | Planned (Milestone 4) |
+| [event-worker](event-worker/) | Go + Kafka consumer | **Working.** Consumes `user.registered`/`exercise.completed`, day-granularity streaks + leaderboard, proxied through core-api |
 | [infra](infra/k8s/) (k8s on Oracle) | k3s, Kafka (KRaft), Cloudflare | **Deployed.** Single-node k3s, multi-arch GHCR images, Traefik + Origin CA TLS — see the [runbook](infra/k8s/README.md) |
 
 **Key design decisions:**
@@ -77,6 +77,9 @@ deployed on Kubernetes.
 | `POST /api/courses/{c}/lessons/{l}/complete` | JWT | Mark lesson complete (publishes `exercise.completed`) |
 | `GET /api/courses/{id}/progress` | JWT | Per-course completion |
 | `GET /api/users/me`, `PATCH /api/users/me/level` | JWT | Profile & JLPT level |
+| `GET /api/lessons/{id}/exercises` | JWT | LLM-generated (or seeded) exercises, no answers |
+| `POST /api/exercises/{id}/attempts` | JWT | Grade an attempt (publishes `exercise.completed`) |
+| `GET /api/users/me/streak`, `GET /api/leaderboard` | JWT | Day-granularity streak & leaderboard (proxied to `event-worker`) |
 
 ---
 

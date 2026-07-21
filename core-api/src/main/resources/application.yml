@@ -56,3 +56,7 @@ ai-exercise-svc:
   # longer enough headroom even for a single-fallback path, let alone a
   # double fallback to OpenRouter.
   timeout-seconds: ${AI_EXERCISE_SVC_TIMEOUT_SECONDS:90}
+
+event-worker:
+  url: ${EVENT_WORKER_URL:http://localhost:8090}
+  timeout-seconds: ${EVENT_WORKER_TIMEOUT_SECONDS:10}

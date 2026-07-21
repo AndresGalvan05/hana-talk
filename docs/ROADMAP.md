@@ -11,7 +11,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M1.5 — Adopt spec-driven development (OpenSpec) | ✅ Done 2026-07-14 |
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | ✅ Done 2026-07-20 — exercise domain, generation, provider failover, and frontend UI all shipped |
-| M4 — Async side effects (Go event-worker) | After M2 (Kafka in cluster) |
+| M4 — Async side effects (Go event-worker) | ✅ Done 2026-07-20 — Kafka consumer, streaks, leaderboard |
 | M5 — Polish (tracing, dashboards, admin role, docs) | Last |
 
 ## M1 — Vertical slice ✅
@@ -84,7 +84,7 @@ procured 2026-07-20, all three now in active use (see step 3).
    once the service is back. **M3 is now fully done.**
 **Cut:** streaming, personalization, spaced repetition, LLM-graded free text.
 
-## M4 — Async side effects
+## M4 — Async side effects ✅
 
 **Goal:** Go event-worker consuming `user.registered` / `exercise.completed`:
 streaks (day granularity), leaderboard, internal read API proxied by the gateway
@@ -93,6 +93,19 @@ streaks (day granularity), leaderboard, internal read API proxied by the gateway
 idempotent handlers, idiomatic Go.
 **Storage:** worker owns a separate schema in the shared Postgres (free-tier
 reality, real ownership boundary).
+**Delivered 2026-07-20:** new `event-worker` service (`kafka-go`, `pgx`,
+stdlib `net/http` — no ORM, no router dependency), a fan-in consumer
+(one goroutine per topic reader feeding a single DB-writing goroutine),
+idempotency via a `daily_activity(user_id, activity_date)` UNIQUE
+constraint rather than a separate dedup ledger, and a local `users`
+projection built from `user.registered` (no cross-schema reads into
+core-api's tables). core-api's `UserProfileController`/`LeaderboardController`
+proxy the internal read API via a new `EventWorkerClient`. Verified live:
+streak correctly reaches 1 after same-day completions collapse into one
+activity row, leaderboard shows the username from event-worker's own
+projection, and a hard-killed container recovers with no duplicate/
+incorrect state after rejoining the consumer group. See the
+`event-worker` OpenSpec change (archived once applied) for details.
 **Cut:** notifications/emails, `streak.updated` topic, Redis.
 
 ## M5 — Polish
@@ -117,3 +130,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-20 | `ai-exercise-svc` picked Gemini as the single provider for this slice (native structured/JSON-schema output) over Groq/OpenRouter; both remaining keys are unused until the step-3 failover change. LLM keys stay outside the repo (`~/.config/dev-projects/llm-keys.env`) and are wired into `docker-compose.yml` via `${LLM_KEYS_ENV_PATH}` variable substitution from a gitignored `infra/.env`, never a hardcoded path in a tracked file. |
 | 2026-07-20 | Groq/OpenRouter model IDs picked from live docs at implementation time rather than fixed in the design: `openai/gpt-oss-20b` (Groq's only strict-JSON-schema-capable model) and `google/gemma-4-26b-a4b-it:free` (OpenRouter, deliberately a different model family for infra diversity). `ai-exercise-svc.timeout-seconds` raised 45s → 90s after measuring a real forced-failover call. A key-redaction command mistake during live verification exposed the real Groq/OpenRouter key values in a tool-output file read into the session — both keys were rotated immediately; `GEMINI_API_KEY` was unaffected. |
 | 2026-07-20 | `exercise-practice-ui` reuses `LessonPage`'s existing completion state (`completed`/`progress`) via a shared `refreshCompletion()` function rather than introducing a second completion UI — a correct exercise attempt and the manual "Mark as complete" button now drive the exact same banner. No frontend test runner exists in the repo, so verification stayed manual (Chrome browser automation), consistent with the rest of the frontend. M3 is fully done. |
+| 2026-07-20 | Go toolchain installed on this machine for M4 (none previously). `event-worker`'s idempotency uses a `daily_activity(user_id, activity_date)` UNIQUE constraint instead of a separate dedup ledger — same-day duplicates and Kafka-redelivered events both collapse naturally. `event-worker` maintains its own `users` projection from `user.registered` rather than reading core-api's tables directly, even though both share one Postgres instance — an explicit ownership-boundary choice, not a technical limitation. |

@@ -53,6 +53,7 @@ services:
       DB_PASSWORD: hanatalk
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AI_EXERCISE_SVC_URL: http://ai-exercise-svc:8000
+      EVENT_WORKER_URL: http://event-worker:8090
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +87,21 @@ services:
       MONGO_URI: mongodb://mongo:27017
     depends_on:
       mongo:
+        condition: service_healthy
+
+  event-worker:
+    build:
+      context: ../event-worker
+    ports:
+      - "8090:8090"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      DB_URL: postgres://hanatalk:hanatalk@postgres:5432/hanatalk
+      INTERNAL_API_PORT: "8090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
 
 volumes:
