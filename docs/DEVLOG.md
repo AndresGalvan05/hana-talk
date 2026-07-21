@@ -3,6 +3,66 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-20 — M3 step 4: exercise practice UI — M3 fully done
+
+**Shipped**
+- OpenSpec change `exercise-practice-ui`: `LessonPage` gains a "Practice
+  exercises" section, wired to the `GET /api/lessons/{id}/exercises` and
+  `POST /api/exercises/{id}/attempts` endpoints that have been live since
+  M3 steps 1–3 with no frontend to use them until now. New
+  `ExercisePractice` component (`frontend/src/components/`): MCQ renders
+  as a radio-button group, fill-in-blank as a text input, each exercise is
+  its own independent mini state machine (`answer`/`submitting`/
+  `result: boolean | null`) — no cross-exercise coordination, matching the
+  backend's model where every attempt is independent.
+- A correct attempt reuses the *exact same* completion state `LessonPage`'s
+  manual "Mark as complete" button already drives — extracted
+  `markComplete()`'s success path into a shared `refreshCompletion()`
+  function, passed to `ExercisePractice` as an `onCompleted` callback. One
+  completion banner, two ways to trigger it, zero duplicated UI.
+- Loading state starts as plain "Loading exercises…" and upgrades to
+  "Still generating — this can take up to a minute the first time." after
+  a 4s `setTimeout`, honest about the ~90s worst-case first-generation
+  latency (per `provider-failover-chain`) without alarming users on the
+  common fast path (cached/persisted exercises load in well under 4s).
+- A failed fetch (network error or a 502 from an exhausted provider chain)
+  shows an error message with a manual retry button.
+- Verified live end-to-end via Chrome browser automation (no Playwright
+  MCP available this session; no automated frontend test runner exists in
+  this repo at all — consistent with the rest of the frontend):
+  - Opened a lesson with zero exercises: loading message showed, exercises
+    rendered once generation completed.
+  - Submitted an incorrect MCQ answer → incorrect feedback, immediately
+    resubmitted the correct answer → correct feedback **and** the lesson's
+    completion banner appeared with no page reload.
+  - Reloaded the same lesson: exercises loaded instantly (already
+    persisted `Exercise` rows), completion banner still showed.
+  - Manual "Mark as complete" on a *different* lesson (one with existing
+    exercises, not yet completed) still worked unchanged.
+  - Stopped `ai-exercise-svc`, opened a lesson with no exercises yet:
+    error + retry UI appeared (no lingering "Loading…"). Restarted the
+    service, clicked retry: request succeeded, and — since this happened
+    to be that lesson's genuine first-ever generation — the "still
+    generating" slow-loading message was also observed live, not just in
+    code review.
+  - Browser console clean (no errors) throughout.
+- **M3 (AI exercises) is now fully done** — all four steps (exercise
+  domain, generation via `ai-exercise-svc`, provider failover, frontend
+  UI) shipped and verified live.
+
+**Errors & lessons**
+- *A stale date, caught before it spread:* the previous session's archive
+  of `provider-failover-chain` was named `2026-07-21-...` from an assumed
+  date rollover that hadn't actually happened — `date +%Y-%m-%d` on the
+  machine still read 2026-07-20. Caught while writing this session's
+  ROADMAP entry (about to write "done 2026-07-21" and noticed the
+  mismatch); fixed by renaming the archive folder back to
+  `2026-07-20-provider-failover-chain` via `git mv` before it was pushed
+  anywhere. Lesson: when a date matters for a filename/log entry across a
+  session that's run long, check `date` rather than inferring — assistant
+  "today" context can go stale mid-session in a way the actual system
+  clock won't.
+
 ## 2026-07-20 — M3 step 3: provider failover chain (Gemini → Groq → OpenRouter)
 
 **Shipped**

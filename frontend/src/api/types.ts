@@ -28,6 +28,20 @@ export interface CourseProgress {
   completedLessonIds: string[]
 }
 
+export type ExerciseType = 'MCQ' | 'FILL_IN_BLANK'
+
+export interface Exercise {
+  id: string
+  lessonId: string
+  type: ExerciseType
+  prompt: string
+  options: string[] | null
+}
+
+export interface AttemptResult {
+  correct: boolean
+}
+
 export interface UserProfile {
   username: string
   nativeLanguage: string

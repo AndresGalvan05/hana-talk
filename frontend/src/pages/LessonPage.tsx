@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { ExercisePractice } from '../components/ExercisePractice'
 import { api } from '../api/client'
 import type { CourseProgress, Lesson } from '../api/types'
 
@@ -37,13 +38,24 @@ export function LessonPage() {
     }
   }, [courseId, lessonId])
 
+  // Shared by the manual "Mark as complete" button and a correct exercise
+  // attempt — one place flips the lesson into "completed" UI regardless of
+  // which path triggered it.
+  async function refreshCompletion() {
+    setCompleted(true)
+    try {
+      setProgress(await api.get<CourseProgress>(`/api/courses/${courseId}/progress`))
+    } catch {
+      /* non-fatal: the completion banner still shows without the progress line */
+    }
+  }
+
   async function markComplete() {
     setCompleting(true)
     setError(null)
     try {
       await api.post<void>(`/api/courses/${courseId}/lessons/${lessonId}/complete`)
-      setCompleted(true)
-      setProgress(await api.get<CourseProgress>(`/api/courses/${courseId}/progress`))
+      await refreshCompletion()
     } catch {
       setError('Could not mark the lesson complete. Try again.')
     } finally {
@@ -75,6 +87,7 @@ export function LessonPage() {
           )}
         </article>
       )}
+      {lesson && lessonId && <ExercisePractice lessonId={lessonId} onCompleted={refreshCompletion} />}
     </>
   )
 }
