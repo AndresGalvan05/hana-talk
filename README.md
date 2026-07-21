@@ -7,6 +7,11 @@ deployed on Kubernetes.
 
 **Live at [https://hanatalk.online](https://hanatalk.online)** — Cloudflare-proxied, single-node k3s on Oracle Cloud (A1 Flex, aarch64)
 
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full trade-offs
+discussion (sync/async boundary, the outbox trade-off, ownership
+boundaries, security, observability) and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)
+for a runnable 2-minute walkthrough.
+
 ---
 
 ## Architecture
@@ -55,14 +60,14 @@ deployed on Kubernetes.
 - The Core API is the single gateway — the frontend never calls other services directly.
 - Exercise generation is **synchronous** (user is waiting). Side effects (streaks,
   leaderboard) are **asynchronous** via Kafka. Realistic split, not "Kafka for everything."
-- The AI Exercise Service will use an abstract `LLMProvider` interface with automatic
-  failover on rate limits — free-tier LLM APIs make failover a real requirement, not
-  a demo.
+- `ai-exercise-svc` tries Gemini → Groq → OpenRouter, falling through on any failure
+  (transport or schema-validation) — free-tier LLM APIs make failover a real
+  requirement, not a demo.
 - Postgres and MongoDB each have a specific reason: relational structure for
   users/auth/progress, variable-shape document storage for generated exercise content.
-- Kafka publishing is currently fire-and-forget with error logging
-  (`EventPublisher.kt`); a transactional outbox is deliberately deferred — see the
-  roadmap discussion of trade-offs.
+- Kafka publishing is fire-and-forget with error logging (`EventPublisher.kt`); a
+  transactional outbox is deliberately deferred — see
+  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full trade-offs discussion.
 
 ---
 
@@ -73,7 +78,7 @@ deployed on Kubernetes.
 | `POST /api/auth/register`, `POST /api/auth/login` | public | JWT issue |
 | `GET /api/courses`, `GET /api/courses/{id}` | public | Browse courses, filter by `?jlptLevel=` |
 | `GET /api/courses/{id}/lessons`, `.../lessons/{id}` | public | Lesson content |
-| `POST/PUT/DELETE` on courses & lessons | JWT | Content CRUD (admin role planned) |
+| `POST/PUT/DELETE` on courses & lessons | JWT, `ADMIN` role | Content CRUD |
 | `POST /api/courses/{c}/lessons/{l}/complete` | JWT | Mark lesson complete (publishes `exercise.completed`) |
 | `GET /api/courses/{id}/progress` | JWT | Per-course completion |
 | `GET /api/users/me`, `PATCH /api/users/me/level` | JWT | Profile & JLPT level |
@@ -126,9 +131,9 @@ Postgres or Docker.
 |---|---|
 | **M1 — Vertical slice** ✅ | React frontend: register → log in → browse seeded N5 course → complete lessons → see progress. CORS, JWT in the browser. |
 | **M2 — Deployed & public** ✅ | k3s on Oracle Always Free, images pushed to GHCR from CI, Kafka in-cluster, Cloudflare TLS at hanatalk.online. |
-| **M3 — AI exercises** | Exercise domain in core-api (MCQ / fill-in-blank, graded in the gateway) + Python FastAPI generation service with LLM provider failover and MongoDB caching. |
-| **M4 — Async side effects** | Go event-worker: Kafka consumer group, streaks + leaderboard, read API proxied through the gateway. |
-| **M5 — Polish** | Cross-service OTel tracing, Grafana dashboards, admin role for content CRUD, architecture/decisions doc. |
+| **M3 — AI exercises** ✅ | Exercise domain in core-api (MCQ / fill-in-blank, graded in the gateway) + Python FastAPI generation service with LLM provider failover and MongoDB caching. |
+| **M4 — Async side effects** ✅ | Go event-worker: Kafka consumer group, streaks + leaderboard, read API proxied through the gateway. |
+| **M5 — Polish** ✅ | Cross-service OTel tracing, Grafana Cloud dashboards, admin role for content CRUD, architecture/decisions doc. |
 
 ---
 

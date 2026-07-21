@@ -3,6 +3,49 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-21 — M5 final: architecture doc + demo script — roadmap complete
+
+**Shipped**
+- OpenSpec change `architecture-doc-and-demo-script`: the last M5 item and
+  the last item on the whole roadmap. The first change in this project
+  with zero code — pure synthesis of five milestones of decisions already
+  made and dated in this file and `docs/ROADMAP.md`'s decision log.
+- New `docs/ARCHITECTURE.md`, organized around 8 questions an interviewer
+  would actually ask rather than chronologically: system overview (with
+  the two independent core-api↔event-worker relationships — Kafka publish
+  vs. sync HTTP reads — named explicitly, since they're easy to conflate),
+  why polyglot, the sync/async boundary, the outbox trade-off (with the
+  real M1 bug that motivated the current fire-and-forget design), ownership
+  boundaries under one shared Postgres, the security model, the
+  observability approach, and a genuinely specific "what I'd do differently
+  at scale" section grounded in this project's own cut lines (a
+  transactional outbox, a real per-service database, circuit-breaker-based
+  provider failover, a frontend admin UI) — not a hedge.
+- New `docs/DEMO_SCRIPT.md`: a literal timed ~2-minute sequence. Explicitly
+  asked the user how to scope it first, since a real finding surfaced
+  while planning it — production (hanatalk.online) doesn't actually have
+  `ai-exercise-svc` or `event-worker` deployed (confirmed back during
+  `grafana-cloud-observability`), so the live site can't show LLM
+  generation/failover, Kafka-driven streaks, or cross-service tracing at
+  all. Scoped to the local docker-compose stack (the user's choice) so
+  the full story can actually be demonstrated end to end.
+- Fixed real `README.md` staleness surfaced while writing the above: the
+  roadmap table had M3/M4/M5 unchecked despite all three being fully
+  shipped; a design-decisions bullet still described AI-exercise-service
+  failover in future tense ("will use...") despite `provider-failover-chain`
+  having shipped a session ago; the API surface table still said "admin
+  role planned" despite `admin-content-authoring` having shipped hours
+  earlier in this same session.
+
+**Errors & lessons**
+- *A real arithmetic error caught on self-review*: an early draft of the
+  security section said the admin-role gap existed for "seven weeks of
+  milestone history" — the actual dates (M1 2026-07-14 to M5 2026-07-21)
+  span about a week, not weeks at all. Caught by re-reading the doc before
+  finalizing rather than trusting the first draft's phrasing — the same
+  discipline this document itself argues for (verify against the actual
+  dated history, don't just narrate confidently).
+
 ## 2026-07-21 — M5 step 2: Grafana Cloud observability
 
 **Shipped**

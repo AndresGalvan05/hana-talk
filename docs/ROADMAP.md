@@ -12,7 +12,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | ✅ Done 2026-07-20 — exercise domain, generation, provider failover, and frontend UI all shipped |
 | M4 — Async side effects (Go event-worker) | ✅ Done 2026-07-20 — Kafka consumer, streaks, leaderboard |
-| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — tracing, admin role, and Grafana Cloud dashboards done 2026-07-21; final architecture/demo docs remain |
+| M5 — Polish (tracing, dashboards, admin role, docs) | ✅ Done 2026-07-21 — tracing, admin role, Grafana Cloud dashboards, architecture doc + demo script. **Roadmap complete.** |
 
 ## M1 — Vertical slice ✅
 
@@ -164,7 +164,19 @@ external account):
    SQL promotion to `ADMIN`, the same token can create/update/delete
    courses and lessons; all GET endpoints work identically regardless of
    role, exactly as before.
-4. Architecture & trade-offs doc, 2-minute demo script.
+4. ✅ **Done 2026-07-21** (`architecture-doc-and-demo-script`): new
+   `docs/ARCHITECTURE.md` — a synthesized narrative (not new design work)
+   built from the decision log below and `docs/DEVLOG.md`'s session
+   history, organized around 8 questions an interviewer would actually
+   ask (sync/async boundary, the outbox trade-off, cross-service ownership,
+   security, observability, "what I'd do differently at scale"). New
+   `docs/DEMO_SCRIPT.md` — a literal timed ~2-minute walkthrough, scoped
+   to the local docker-compose stack since production doesn't have
+   `ai-exercise-svc`/`event-worker` deployed. Also fixed real `README.md`
+   staleness found while writing both: roadmap checkmarks, the admin-role
+   and LLM-failover sections were both still describing shipped work as
+   planned/future. **This completes the roadmap — M1 through M5 are all
+   done.**
 
 ## Decision log
 
@@ -185,3 +197,4 @@ external account):
 | 2026-07-21 | M5 split like M3: `cross-service-tracing` proposed and shipped first (unblocked); Grafana Cloud dashboards deferred as a separate change pending an external account/API key. Local Jaeger (`all-in-one`) chosen over a bare OTel Collector purely for local verification — not a production decision. |
 | 2026-07-21 | User created a Grafana Cloud account, clearing that M5 blocker. `admin-content-authoring` proposed next instead (still unblocked, and closes a real security gap already live since M1). No JWT `role` claim added — `JwtAuthFilter` already re-derives `UserDetails` from the database on every request, so role is always current without one; a claim would only add staleness risk. No API path can create/promote an admin — a direct SQL `UPDATE`, matching how `core-api-secret` was created directly on the cluster rather than through a checked-in bootstrap path. |
 | 2026-07-21 | `grafana-cloud-observability` scoped to core-api only after discovering `ai-exercise-svc`/`event-worker` were never deployed to production (no `infra/k8s/` manifests exist for them) — deploying them is separate future work, decided explicitly with the user rather than silently assumed. Direct OTLP export from core-api chosen over a Grafana Alloy/Collector agent specifically to avoid any new in-cluster component (the actual "saves cluster RAM" point). During live verification against the real Grafana Cloud stack: hit the same endpoint-path convention mismatch as the local Jaeger work (Spring wants the full `/v1/traces` path, Grafana's wizard gives the base URL) and separately a Grafana Cloud access-policy scope gap (`invalid scope requested` — needed both `metrics:write` and `traces:write`). Confirmed real Micrometer-OTLP metric names live (`_milliseconds_count` suffix, not `_seconds_count`) rather than guessing, and fixed the dashboard JSON to match. |
+| 2026-07-21 | `architecture-doc-and-demo-script`: the demo script is scoped to the local docker-compose stack, not the live site, after confirming production is missing `ai-exercise-svc`/`event-worker` — asked the user explicitly rather than silently picking a scope, since it changes the entire deliverable's shape. `docs/ARCHITECTURE.md` is framed as a synthesis of decisions already made and dated in this log, not new design work. **Roadmap complete — M1 through M5 all done.** |
