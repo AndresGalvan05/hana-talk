@@ -37,6 +37,12 @@ class SecurityConfig(
                 it.requestMatchers("/api/auth/**", "/api/health", "/actuator/**", "/error").permitAll()
                 it.requestMatchers(HttpMethod.GET, "/api/courses/*/progress").authenticated()
                 it.requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
+                it.requestMatchers(HttpMethod.POST, "/api/courses", "/api/courses/*/lessons")
+                    .hasRole("ADMIN")
+                it.requestMatchers(HttpMethod.PUT, "/api/courses/*", "/api/courses/*/lessons/*")
+                    .hasRole("ADMIN")
+                it.requestMatchers(HttpMethod.DELETE, "/api/courses/*", "/api/courses/*/lessons/*")
+                    .hasRole("ADMIN")
                 it.anyRequest().authenticated()
             }
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter::class.java)

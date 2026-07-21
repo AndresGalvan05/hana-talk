@@ -28,6 +28,9 @@ class User(
     @Enumerated(EnumType.STRING)
     @Column(name = "starting_level", length = 5)
     var startingLevel: JlptLevel? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    var role: UserRole = UserRole.USER,
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now(),
 )

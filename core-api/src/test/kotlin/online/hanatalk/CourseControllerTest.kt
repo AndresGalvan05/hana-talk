@@ -91,8 +91,8 @@ class CourseControllerTest {
     }
 
     @Test
-    @WithMockUser
-    fun `create course with auth returns 201`() {
+    @WithMockUser(roles = ["ADMIN"])
+    fun `create course as admin returns 201`() {
         given(courseService.create(any())).willReturn(sampleCourse)
 
         mockMvc.post("/api/courses") {
@@ -105,8 +105,8 @@ class CourseControllerTest {
     }
 
     @Test
-    @WithMockUser
-    fun `update course returns 200`() {
+    @WithMockUser(roles = ["ADMIN"])
+    fun `update course as admin returns 200`() {
         given(courseService.update(any(), any())).willReturn(sampleCourse)
 
         mockMvc.put("/api/courses/${sampleCourse.id}") {
@@ -116,9 +116,34 @@ class CourseControllerTest {
     }
 
     @Test
-    @WithMockUser
-    fun `delete course returns 204`() {
+    @WithMockUser(roles = ["ADMIN"])
+    fun `delete course as admin returns 204`() {
         mockMvc.delete("/api/courses/${sampleCourse.id}")
             .andExpect { status { isNoContent() } }
+    }
+
+    @Test
+    @WithMockUser
+    fun `create course as non-admin returns 403`() {
+        mockMvc.post("/api/courses") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"title":"N5 Hiragana","jlptLevel":"N5"}"""
+        }.andExpect { status { isForbidden() } }
+    }
+
+    @Test
+    @WithMockUser
+    fun `update course as non-admin returns 403`() {
+        mockMvc.put("/api/courses/${sampleCourse.id}") {
+            contentType = MediaType.APPLICATION_JSON
+            content = """{"title":"Updated","jlptLevel":"N5"}"""
+        }.andExpect { status { isForbidden() } }
+    }
+
+    @Test
+    @WithMockUser
+    fun `delete course as non-admin returns 403`() {
+        mockMvc.delete("/api/courses/${sampleCourse.id}")
+            .andExpect { status { isForbidden() } }
     }
 }

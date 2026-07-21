@@ -191,6 +191,20 @@ kubectl -n hanatalk exec -it kafka-0 -- \
 - **k3s upgrades**: rerun the install script on demand (CVE or twice a year);
   internal certs rotate on restart.
 
+## 11. Promoting a user to admin
+
+Course/lesson mutation (`POST`/`PUT`/`DELETE`) requires the `ADMIN` role.
+There is no API endpoint that creates or promotes an admin — that's
+deliberate (see `docs/DEVLOG.md` 2026-07-21). To promote an already-registered
+user, connect to Postgres and run:
+
+```sql
+UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
+
+The user's existing session/JWT works immediately after — `UserDetailsServiceImpl`
+re-derives roles from the database on every request, no re-login needed.
+
 ## Layout
 
 ```

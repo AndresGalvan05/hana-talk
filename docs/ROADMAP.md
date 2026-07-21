@@ -12,7 +12,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | ✅ Done 2026-07-20 — exercise domain, generation, provider failover, and frontend UI all shipped |
 | M4 — Async side effects (Go event-worker) | ✅ Done 2026-07-20 — Kafka consumer, streaks, leaderboard |
-| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — cross-service tracing done 2026-07-21; Grafana Cloud, admin role, docs remain |
+| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — tracing + admin role done 2026-07-21; Grafana Cloud dashboards + final docs remain |
 
 ## M1 — Vertical slice ✅
 
@@ -131,10 +131,24 @@ external account):
    its Kafka publish, and `event-worker`'s consumption of that message;
    separately, core-api's calls to `ai-exercise-svc` and `event-worker`'s
    internal API each produce a correlated two-service trace.
-2. Grafana Cloud dashboards — blocked on the user creating an account and
-   procuring an API key/instance URL (same shape of blocker LLM keys were
-   for M3).
-3. Admin role for content CRUD.
+2. Grafana Cloud dashboards — account created 2026-07-21 (was blocked on
+   this, per the M3 LLM-keys pattern); ready to propose whenever picked up.
+3. ✅ **Done 2026-07-21** (`admin-content-authoring`): closed a real,
+   live security gap — `CourseController`/`LessonController` have had full
+   POST/PUT/DELETE since M1, but `SecurityConfig` only ever checked
+   `.authenticated()`, so any registered user could mutate any course or
+   lesson. `User` gained a `role` (`USER`/`ADMIN`, defaulting to `USER`);
+   `UserDetailsServiceImpl` looks it up fresh from the database on every
+   request (no JWT role claim — deliberately rejected, since
+   `JwtAuthFilter` already re-derives `UserDetails` per request);
+   `SecurityConfig` gained `hasRole("ADMIN")` matchers for course/lesson
+   mutation only, reads untouched. No API path can create or promote an
+   admin — that's a direct SQL `UPDATE` an operator runs, the same trust
+   boundary already used for `core-api-secret`. Verified live: a fresh
+   user defaults to `USER` and gets 403 on course creation; after a manual
+   SQL promotion to `ADMIN`, the same token can create/update/delete
+   courses and lessons; all GET endpoints work identically regardless of
+   role, exactly as before.
 4. Architecture & trade-offs doc, 2-minute demo script.
 
 ## Decision log
@@ -154,3 +168,4 @@ external account):
 | 2026-07-20 | `exercise-practice-ui` reuses `LessonPage`'s existing completion state (`completed`/`progress`) via a shared `refreshCompletion()` function rather than introducing a second completion UI — a correct exercise attempt and the manual "Mark as complete" button now drive the exact same banner. No frontend test runner exists in the repo, so verification stayed manual (Chrome browser automation), consistent with the rest of the frontend. M3 is fully done. |
 | 2026-07-20 | Go toolchain installed on this machine for M4 (none previously). `event-worker`'s idempotency uses a `daily_activity(user_id, activity_date)` UNIQUE constraint instead of a separate dedup ledger — same-day duplicates and Kafka-redelivered events both collapse naturally. `event-worker` maintains its own `users` projection from `user.registered` rather than reading core-api's tables directly, even though both share one Postgres instance — an explicit ownership-boundary choice, not a technical limitation. |
 | 2026-07-21 | M5 split like M3: `cross-service-tracing` proposed and shipped first (unblocked); Grafana Cloud dashboards deferred as a separate change pending an external account/API key. Local Jaeger (`all-in-one`) chosen over a bare OTel Collector purely for local verification — not a production decision. |
+| 2026-07-21 | User created a Grafana Cloud account, clearing that M5 blocker. `admin-content-authoring` proposed next instead (still unblocked, and closes a real security gap already live since M1). No JWT `role` claim added — `JwtAuthFilter` already re-derives `UserDetails` from the database on every request, so role is always current without one; a claim would only add staleness risk. No API path can create/promote an admin — a direct SQL `UPDATE`, matching how `core-api-secret` was created directly on the cluster rather than through a checked-in bootstrap path. |

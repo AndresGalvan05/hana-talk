@@ -3,6 +3,56 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-21 — M5 step 3: admin role for content CRUD
+
+**Shipped**
+- OpenSpec change `admin-content-authoring`, closing a real, live gap:
+  `CourseController`/`LessonController` have had full POST/PUT/DELETE
+  since M1, but `SecurityConfig` only ever checked `.authenticated()` on
+  them — any registered user could create, edit, or delete any course or
+  lesson. Confirmed via a fresh `@WithMockUser`-role test failing before
+  the fix (403 expected, got 200/201/204) and passing after.
+- `User` gained a `role` column (`UserRole.USER`/`ADMIN`, `V10__add_role_to_users.sql`,
+  defaulting existing rows to `USER`). `UserDetailsServiceImpl` now looks
+  up the real role (`.roles(user.role.name)`) instead of hardcoding
+  `"USER"` for every principal. `JwtAuthFilter` needed **zero** changes —
+  it already re-derives `UserDetails` (and therefore authorities) from the
+  database on every request via `loadUserByUsername`, so no JWT `role`
+  claim was added: it would have been redundant, and would introduce a
+  staleness risk (a demoted admin's already-issued token would keep
+  asserting the old role until expiry, if anything ever read
+  authorization from the claim instead of the live lookup).
+- `SecurityConfig` gained three `hasRole("ADMIN")` matchers (POST/PUT/DELETE
+  on course and lesson paths), placed before the existing
+  `anyRequest().authenticated()` catch-all — every GET matcher (courses,
+  lessons, exercises) is untouched.
+- **No API path can create or promote an admin.** Self-registration always
+  defaults to `USER`; the only way to become an admin is a direct
+  `UPDATE users SET role = 'ADMIN' WHERE email = '...'` an operator runs —
+  the same trust boundary already used for `core-api-secret` and the
+  Cloudflare Origin CA secret (created directly on the cluster, never
+  through a checked-in bootstrap script). No admin-invite endpoint, no
+  bootstrap seed with a checked-in credential.
+- Updated the *existing, already-passing* `CourseControllerTest`/
+  `LessonControllerTest` mutation tests to `@WithMockUser(roles =
+  ["ADMIN"])` (they'd been silently exercising the pre-fix security gap
+  the whole time), and added new 403-for-non-admin tests alongside them.
+- Verified live: a fresh user's `role` defaults to `USER` in the database;
+  that user gets 403 attempting to create a course; after a manual SQL
+  promotion to `ADMIN`, the exact same JWT (still re-checked against the
+  database per request, no re-login needed) can create, update, and
+  delete both a course and a lesson; all GET endpoints work identically
+  for both roles, exactly as before this change.
+
+**Errors & lessons**
+- None — the existing `JwtAuthFilter`/`UserDetailsServiceImpl` split
+  (re-deriving authorities from the database on every request, rather
+  than trusting anything baked into the JWT) turned out to already be
+  exactly the right shape for adding a role check with zero authentication
+  code changes. Worth remembering next time a "should this go in the JWT
+  claim or get looked up fresh" question comes up elsewhere in this
+  codebase: fresh lookup already IS the existing pattern here.
+
 ## 2026-07-21 — M5 step 1: cross-service tracing actually works now
 
 **Shipped**
