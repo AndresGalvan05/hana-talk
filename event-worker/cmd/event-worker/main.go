@@ -10,11 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/api"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/config"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/consumer"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/db"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/store"
+	"github.com/AndresGalvan05/hana-talk/event-worker/internal/tracing"
 )
 
 func main() {
@@ -34,6 +37,12 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	shutdownTracing, err := tracing.Setup(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = shutdownTracing(context.Background()) }()
+
 	pool, err := db.Connect(ctx, cfg.DBURL)
 	if err != nil {
 		return err
@@ -51,7 +60,7 @@ func run() error {
 
 	server := &http.Server{
 		Addr:    ":" + cfg.InternalAPIPort,
-		Handler: api.NewServer(s),
+		Handler: otelhttp.NewHandler(api.NewServer(s), "event-worker"),
 	}
 
 	go func() {

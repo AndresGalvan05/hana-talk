@@ -20,6 +20,11 @@ spring:
         # Events are best-effort side effects; never stall a user-facing
         # request longer than this waiting for broker metadata (default 60s).
         max.block.ms: 3000
+    template:
+      # The one property needed for KafkaTemplate.send() to inject a W3C
+      # traceparent header into published records — verified against
+      # Spring Kafka's own sample-08 (producer/consumer sharing a trace id).
+      observation-enabled: true
 
 server:
   port: 8080

@@ -12,11 +12,16 @@ import java.util.UUID
 
 @Component
 class EventWorkerClient(
+    restClientBuilder: RestClient.Builder,
     @Value("\${event-worker.url}") baseUrl: String,
     @Value("\${event-worker.timeout-seconds:10}") timeoutSeconds: Long,
 ) {
+    // Must use the Spring-autoconfigured RestClient.Builder, not the static
+    // RestClient.builder() factory — per Spring Boot's own docs, the static
+    // factory bypasses all auto-configuration, including the
+    // ObservationRestClientCustomizer that injects trace-context headers.
     private val restClient: RestClient =
-        RestClient.builder()
+        restClientBuilder
             .baseUrl(baseUrl)
             .requestFactory(
                 SimpleClientHttpRequestFactory().apply {

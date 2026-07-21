@@ -12,7 +12,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | ✅ Done 2026-07-20 — exercise domain, generation, provider failover, and frontend UI all shipped |
 | M4 — Async side effects (Go event-worker) | ✅ Done 2026-07-20 — Kafka consumer, streaks, leaderboard |
-| M5 — Polish (tracing, dashboards, admin role, docs) | Last |
+| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — cross-service tracing done 2026-07-21; Grafana Cloud, admin role, docs remain |
 
 ## M1 — Vertical slice ✅
 
@@ -115,6 +115,28 @@ dashboards (saves cluster RAM), admin role for content CRUD, architecture &
 trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 **Cut:** load testing, chaos engineering, multi-env.
 
+**Order inside milestone** (split like M3, since Grafana Cloud needs an
+external account):
+1. ✅ **Done 2026-07-21** (`cross-service-tracing`): a local Jaeger
+   collector plus real, working trace propagation across every service
+   boundary — core-api → Kafka → `event-worker` (W3C `traceparent` in
+   record headers, `spring.kafka.template.observation-enabled`), and
+   core-api → `ai-exercise-svc`/`event-worker` over HTTP. Found and fixed
+   a real bug along the way: `AiExerciseSvcClient`/`EventWorkerClient`
+   both built their `RestClient` via the static `RestClient.builder()`
+   factory, which — per Spring Boot's own docs — silently skips all
+   auto-configuration, including trace-header injection; fixed by
+   injecting the Spring-managed `RestClient.Builder` bean instead.
+   Verified live: a single trace in Jaeger spans core-api's HTTP request,
+   its Kafka publish, and `event-worker`'s consumption of that message;
+   separately, core-api's calls to `ai-exercise-svc` and `event-worker`'s
+   internal API each produce a correlated two-service trace.
+2. Grafana Cloud dashboards — blocked on the user creating an account and
+   procuring an API key/instance URL (same shape of blocker LLM keys were
+   for M3).
+3. Admin role for content CRUD.
+4. Architecture & trade-offs doc, 2-minute demo script.
+
 ## Decision log
 
 | Date | Decision |
@@ -131,3 +153,4 @@ trade-offs doc (incl. outbox-pattern discussion), 2-minute demo script.
 | 2026-07-20 | Groq/OpenRouter model IDs picked from live docs at implementation time rather than fixed in the design: `openai/gpt-oss-20b` (Groq's only strict-JSON-schema-capable model) and `google/gemma-4-26b-a4b-it:free` (OpenRouter, deliberately a different model family for infra diversity). `ai-exercise-svc.timeout-seconds` raised 45s → 90s after measuring a real forced-failover call. A key-redaction command mistake during live verification exposed the real Groq/OpenRouter key values in a tool-output file read into the session — both keys were rotated immediately; `GEMINI_API_KEY` was unaffected. |
 | 2026-07-20 | `exercise-practice-ui` reuses `LessonPage`'s existing completion state (`completed`/`progress`) via a shared `refreshCompletion()` function rather than introducing a second completion UI — a correct exercise attempt and the manual "Mark as complete" button now drive the exact same banner. No frontend test runner exists in the repo, so verification stayed manual (Chrome browser automation), consistent with the rest of the frontend. M3 is fully done. |
 | 2026-07-20 | Go toolchain installed on this machine for M4 (none previously). `event-worker`'s idempotency uses a `daily_activity(user_id, activity_date)` UNIQUE constraint instead of a separate dedup ledger — same-day duplicates and Kafka-redelivered events both collapse naturally. `event-worker` maintains its own `users` projection from `user.registered` rather than reading core-api's tables directly, even though both share one Postgres instance — an explicit ownership-boundary choice, not a technical limitation. |
+| 2026-07-21 | M5 split like M3: `cross-service-tracing` proposed and shipped first (unblocked); Grafana Cloud dashboards deferred as a separate change pending an external account/API key. Local Jaeger (`all-in-one`) chosen over a bare OTel Collector purely for local verification — not a production decision. |

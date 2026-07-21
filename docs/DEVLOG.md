@@ -3,6 +3,83 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-21 — M5 step 1: cross-service tracing actually works now
+
+**Shipped**
+- OpenSpec change `cross-service-tracing`: the first M5 slice, split out
+  because it needed no external account (unlike Grafana Cloud, deferred).
+  Added a local `jaeger` (`all-in-one`) service to `docker-compose.yml` —
+  the first time any of core-api's tracing dependencies (present since M1)
+  have ever actually exported a span. `management.otlp.tracing.endpoint`'s
+  default (`http://localhost:4318/v1/traces`) had been failing silently
+  since day one because "localhost" inside a container means the
+  container itself.
+- **Kafka trace propagation**: one Spring property,
+  `spring.kafka.template.observation-enabled: true`, was the entire fix on
+  the producer side — verified directly against Spring Kafka's own
+  `sample-08` before writing it, rather than guessing. `EventPublisher`
+  needed zero code changes.
+- **A real bug found via research, not luck**: `AiExerciseSvcClient` and
+  `EventWorkerClient` (from M3/M4) both build their `RestClient` via the
+  static `RestClient.builder()` factory method. Spring Boot's own docs
+  state plainly that this bypasses all auto-configuration — including the
+  `ObservationRestClientCustomizer` that injects `traceparent` headers.
+  Both were fixed to inject the Spring-managed `RestClient.Builder` bean
+  instead, keeping their existing per-service timeout customization.
+  Neither client's request-building code needed to change.
+- `ai-exercise-svc` gained `opentelemetry-sdk` +
+  `opentelemetry-exporter-otlp-proto-http` +
+  `opentelemetry-instrumentation-fastapi`; FastAPI auto-instrumentation
+  extracts an incoming `traceparent` header with zero per-route code.
+- `event-worker` gained the Go OTel SDK + `otlptracehttp` +
+  `otelhttp` (wraps its internal API for incoming HTTP trace context) plus
+  **manual** header extraction in the Kafka consumer — there's no
+  standardized `kafka-go` OTel instrumentation the way there is for HTTP,
+  so `extractTraceContext` reads `traceparent`/`tracestate` off
+  `kafka.Message.Headers` into a `propagation.MapCarrier` by hand.
+- Verified live in Jaeger (`localhost:16686`), not just by trusting
+  config: a single trace spans core-api's `POST .../complete` → its Kafka
+  publish → `event-worker`'s `consume exercise.completed`; a separate
+  trace spans core-api's request into `ai-exercise-svc`'s `/generate`; a
+  third spans core-api's request into `event-worker`'s internal
+  leaderboard/streak API.
+
+**Errors & lessons**
+- *Jaeger's exact tag mattered*: `jaegertracing/all-in-one:1.65` doesn't
+  exist as a Docker Hub tag — only `1.65.0` (or `latest`) do. Checked the
+  Docker Hub tags API before guessing a second time.
+- *OTLP endpoint env var convention differs by SDK*: Spring's
+  `management.otlp.tracing.endpoint` wants the **full URL including
+  `/v1/traces`**; the native Python and Go OTel SDKs read the **base**
+  `OTEL_EXPORTER_OTLP_ENDPOINT` (host:port only) and append `/v1/traces`
+  themselves. Verified both behaviors directly in each SDK's source
+  before wiring `docker-compose.yml`, rather than assuming one convention
+  applied everywhere — core-api's env var includes the path, `ai-exercise-svc`'s
+  and `event-worker`'s don't.
+- *A confusing false alarm, caused by my own test method, not the code*:
+  live-testing the Kafka trace path, a lesson completion's streak update
+  didn't show up for several minutes and `event-worker`'s logs showed
+  nothing past "starting consumer" — looked exactly like a real bug. Root
+  cause: I ran `event-worker` locally via `timeout N go run
+  ./cmd/event-worker` twice in a row to get faster iteration than
+  rebuilding the Docker image. `go run` wraps the compiled binary as a
+  child process, and `timeout`'s SIGTERM doesn't reliably propagate
+  through that wrapper before the deadline forces a SIGKILL — so neither
+  run's Kafka consumer group membership was ever cleanly left, leaving
+  zombie members that only expire via session timeout. Two overlapping
+  zombie pairs kept forcing the "event-worker" consumer group through
+  repeated rebalances, each resetting before any member could stabilize
+  long enough to actually fetch a message. Confirmed via
+  `kafka-consumer-groups.sh --describe` showing the group cycling through
+  generations every ~25-30s, and via the broker's own logs showing "2
+  members" joining and failing on a loop. Once left alone (killed the
+  strays, let the group settle, restarted cleanly via Docker only), the
+  same code processed correctly and traced correctly on the first try.
+  Lesson: `go run` is not a reliable way to test graceful-shutdown/signal
+  behavior for a process that owns external session state (a Kafka
+  consumer group) — restart via the actual container, or send the signal
+  directly to the compiled binary's PID, not to `go run`'s wrapper.
+
 ## 2026-07-20 — M4: Go event-worker — streaks, leaderboard
 
 **Shipped**

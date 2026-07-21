@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/events"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/store"
@@ -19,10 +21,26 @@ import (
 
 const groupID = "event-worker"
 
+var tracer = otel.Tracer("event-worker/consumer")
+
 type job struct {
-	topic  string
-	value  []byte
-	result chan error
+	topic   string
+	value   []byte
+	headers []kafka.Header
+	result  chan error
+}
+
+// extractTraceContext builds a context carrying the trace the producer
+// (core-api's EventPublisher, with spring.kafka.template.observation-enabled)
+// started, by reading the W3C traceparent/tracestate headers off the
+// message. There's no off-the-shelf kafka-go OTel instrumentation as
+// standardized as the HTTP ecosystem's, so this is done by hand.
+func extractTraceContext(ctx context.Context, headers []kafka.Header) context.Context {
+	carrier := propagation.MapCarrier{}
+	for _, h := range headers {
+		carrier.Set(h.Key, string(h.Value))
+	}
+	return otel.GetTextMapPropagator().Extract(ctx, carrier)
 }
 
 // Run blocks until ctx is cancelled, consuming both topics and writing
@@ -66,7 +84,7 @@ func consumeTopic(ctx context.Context, brokers []string, topic string, jobs chan
 		slog.Debug("fetched message", "topic", topic, "offset", msg.Offset)
 
 		result := make(chan error, 1)
-		jobs <- job{topic: topic, value: msg.Value, result: result}
+		jobs <- job{topic: topic, value: msg.Value, headers: msg.Headers, result: result}
 
 		if err := <-result; err != nil {
 			slog.Error("processing failed, will redeliver", "topic", topic, "error", err)
@@ -80,7 +98,14 @@ func consumeTopic(ctx context.Context, brokers []string, topic string, jobs chan
 
 func processJobs(ctx context.Context, jobs <-chan job, s *store.Store) {
 	for j := range jobs {
-		j.result <- handle(ctx, j.topic, j.value, s)
+		msgCtx := extractTraceContext(ctx, j.headers)
+		msgCtx, span := tracer.Start(msgCtx, "consume "+j.topic)
+		err := handle(msgCtx, j.topic, j.value, s)
+		if err != nil {
+			span.RecordError(err)
+		}
+		span.End()
+		j.result <- err
 	}
 }
 

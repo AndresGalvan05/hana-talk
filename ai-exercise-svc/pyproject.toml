@@ -11,6 +11,9 @@ dependencies = [
     "google-genai>=1.0",
     "pymongo>=4.10",
     "openai>=2.46.0",
+    "opentelemetry-sdk>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-http>=1.44.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0",
 ]
 
 [dependency-groups]
