@@ -64,7 +64,15 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       AI_EXERCISE_SVC_URL: http://ai-exercise-svc:8000
       EVENT_WORKER_URL: http://event-worker:8090
-      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+    # core-api.defaults.env sets the local-Jaeger OTLP endpoint (safe to
+    # commit). The optional Grafana Cloud file, set via GRAFANA_CLOUD_ENV_PATH
+    # in a local infra/.env, overrides it -- later env_file entries win --
+    # so docker-compose can be pointed at the real Grafana Cloud endpoint
+    # for local verification without touching this tracked file.
+    env_file:
+      - path: ./core-api.defaults.env
+      - path: ${GRAFANA_CLOUD_ENV_PATH:-/dev/null}
+        required: false
     depends_on:
       postgres:
         condition: service_healthy

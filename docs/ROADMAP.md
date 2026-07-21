@@ -12,7 +12,7 @@ and an explicit cut line. Approved 2026-07-13.
 | M2 — Deployed & public (k3s on Oracle) | ✅ Done 2026-07-19 — live at https://hanatalk.online |
 | M3 — AI exercises (core-api domain + ai-exercise-svc) | ✅ Done 2026-07-20 — exercise domain, generation, provider failover, and frontend UI all shipped |
 | M4 — Async side effects (Go event-worker) | ✅ Done 2026-07-20 — Kafka consumer, streaks, leaderboard |
-| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — tracing + admin role done 2026-07-21; Grafana Cloud dashboards + final docs remain |
+| M5 — Polish (tracing, dashboards, admin role, docs) | In progress — tracing, admin role, and Grafana Cloud dashboards done 2026-07-21; final architecture/demo docs remain |
 
 ## M1 — Vertical slice ✅
 
@@ -131,8 +131,23 @@ external account):
    its Kafka publish, and `event-worker`'s consumption of that message;
    separately, core-api's calls to `ai-exercise-svc` and `event-worker`'s
    internal API each produce a correlated two-service trace.
-2. Grafana Cloud dashboards — account created 2026-07-21 (was blocked on
-   this, per the M3 LLM-keys pattern); ready to propose whenever picked up.
+2. ✅ **Done 2026-07-21** (`grafana-cloud-observability`): core-api ships
+   metrics (new `micrometer-registry-otlp`) and traces directly to Grafana
+   Cloud's OTLP endpoint — no in-cluster Prometheus/Grafana/Agent, the
+   actual RAM-saving story. Scoped to core-api only: `ai-exercise-svc`/
+   `event-worker` were never deployed to production (`infra/k8s/` has no
+   manifests for them), so wiring their observability is separate future
+   work. Verified live against the user's real Grafana Cloud stack (not
+   mocked) via the same external-secrets-file pattern as the LLM keys —
+   metrics, traces, and all four dashboard panels (request rate, error
+   rate, JVM memory, Kafka publish rate) confirmed with real data,
+   including a deliberately-triggered 502 to confirm the error-rate panel.
+   Two real bugs hit and fixed during verification, not assumed away: the
+   OTLP endpoint path convention (Spring wants the full `/v1/traces` path;
+   the wizard-provided value was the base URL) and a Grafana Cloud access
+   policy missing the `traces:write` scope. Production rollout is
+   documented (`infra/k8s/README.md` §12), not automated — the user
+   applies it against the live cluster themselves.
 3. ✅ **Done 2026-07-21** (`admin-content-authoring`): closed a real,
    live security gap — `CourseController`/`LessonController` have had full
    POST/PUT/DELETE since M1, but `SecurityConfig` only ever checked
@@ -169,3 +184,4 @@ external account):
 | 2026-07-20 | Go toolchain installed on this machine for M4 (none previously). `event-worker`'s idempotency uses a `daily_activity(user_id, activity_date)` UNIQUE constraint instead of a separate dedup ledger — same-day duplicates and Kafka-redelivered events both collapse naturally. `event-worker` maintains its own `users` projection from `user.registered` rather than reading core-api's tables directly, even though both share one Postgres instance — an explicit ownership-boundary choice, not a technical limitation. |
 | 2026-07-21 | M5 split like M3: `cross-service-tracing` proposed and shipped first (unblocked); Grafana Cloud dashboards deferred as a separate change pending an external account/API key. Local Jaeger (`all-in-one`) chosen over a bare OTel Collector purely for local verification — not a production decision. |
 | 2026-07-21 | User created a Grafana Cloud account, clearing that M5 blocker. `admin-content-authoring` proposed next instead (still unblocked, and closes a real security gap already live since M1). No JWT `role` claim added — `JwtAuthFilter` already re-derives `UserDetails` from the database on every request, so role is always current without one; a claim would only add staleness risk. No API path can create/promote an admin — a direct SQL `UPDATE`, matching how `core-api-secret` was created directly on the cluster rather than through a checked-in bootstrap path. |
+| 2026-07-21 | `grafana-cloud-observability` scoped to core-api only after discovering `ai-exercise-svc`/`event-worker` were never deployed to production (no `infra/k8s/` manifests exist for them) — deploying them is separate future work, decided explicitly with the user rather than silently assumed. Direct OTLP export from core-api chosen over a Grafana Alloy/Collector agent specifically to avoid any new in-cluster component (the actual "saves cluster RAM" point). During live verification against the real Grafana Cloud stack: hit the same endpoint-path convention mismatch as the local Jaeger work (Spring wants the full `/v1/traces` path, Grafana's wizard gives the base URL) and separately a Grafana Cloud access-policy scope gap (`invalid scope requested` — needed both `metrics:write` and `traces:write`). Confirmed real Micrometer-OTLP metric names live (`_milliseconds_count` suffix, not `_seconds_count`) rather than guessing, and fixed the dashboard JSON to match. |

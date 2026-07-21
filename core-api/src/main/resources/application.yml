@@ -46,6 +46,20 @@ management:
   otlp:
     tracing:
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+      headers:
+        # Empty by default (local Jaeger needs no auth); set to Grafana
+        # Cloud's Basic-auth value in production only.
+        Authorization: ${OTEL_EXPORTER_OTLP_AUTH:}
+    metrics:
+      export:
+        # Explicit opt-in: having micrometer-registry-otlp on the classpath
+        # would otherwise auto-enable export (Spring Boot's
+        # @ConditionalOnEnabledMetricsExport defaults true) and start
+        # POSTing to an empty URL in every dev/CI run.
+        enabled: ${GRAFANA_CLOUD_METRICS_ENABLED:false}
+        url: ${GRAFANA_CLOUD_OTLP_METRICS_URL:}
+        headers:
+          Authorization: ${OTEL_EXPORTER_OTLP_AUTH:}
 
 jwt:
   secret: ${JWT_SECRET:dev-local-only-secret-not-for-production!!}

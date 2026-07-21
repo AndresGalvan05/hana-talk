@@ -205,6 +205,39 @@ UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
 The user's existing session/JWT works immediately after — `UserDetailsServiceImpl`
 re-derives roles from the database on every request, no re-login needed.
 
+## 12. Enabling Grafana Cloud export in production
+
+`core-api-config` already has the real (non-secret) Grafana Cloud OTLP
+endpoint URLs and `OTEL_SAMPLING_PROBABILITY: "1.0"` checked in — no
+in-cluster collector/agent, core-api exports directly. The one piece that
+can't be checked in is the Basic-auth header:
+
+```bash
+kubectl create secret generic core-api-secret -n hanatalk \
+  --from-literal=DB_USERNAME=hanatalk \
+  --from-literal=DB_PASSWORD="<existing value>" \
+  --from-literal=JWT_SECRET="<existing value>" \
+  --from-literal=OTEL_EXPORTER_OTLP_AUTH="Basic <base64 of instanceId:apiToken>" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+(Recreating the whole secret, not `kubectl edit`, avoids retyping the
+existing DB/JWT values from memory — pull them from wherever they're
+already recorded, then add the new key.) Apply the updated `configmap.yaml`
+and roll out core-api:
+
+```bash
+k apply -f infra/k8s/core-api/configmap.yaml
+k rollout restart deployment/core-api -n hanatalk
+```
+
+Verified locally (docker-compose against the real Grafana Cloud endpoint)
+2026-07-21: metrics and traces both confirmed arriving, plus a working
+dashboard (`infra/grafana/core-api-overview.json`) — see `docs/DEVLOG.md`
+for the exact metric names confirmed (Micrometer's OTLP registry uses
+`_milliseconds_count`, not `_seconds_count`) and the two real bugs hit
+along the way (endpoint path convention, access-policy scopes).
+
 ## Layout
 
 ```

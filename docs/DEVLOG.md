@@ -3,6 +3,77 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-21 — M5 step 2: Grafana Cloud observability
+
+**Shipped**
+- OpenSpec change `grafana-cloud-observability`. Scoped to core-api only
+  after discovering `ai-exercise-svc`/`event-worker` were never actually
+  deployed to production (`infra/k8s/` has manifests only for core-api,
+  frontend, postgres, kafka, ingress) — surfaced explicitly and confirmed
+  with the user rather than assumed away; deploying those two services is
+  separate future work.
+- core-api now ships metrics (new `io.micrometer:micrometer-registry-otlp`
+  dependency) and traces (already working since `cross-service-tracing`)
+  directly to Grafana Cloud's OTLP endpoint — no Grafana Alloy, no
+  Collector, no in-cluster agent at all, which is the actual "saves
+  cluster RAM" point. `management.otlp.metrics.export.enabled` defaults
+  `false` so local dev/CI are unaffected unless explicitly configured.
+- Verification reused the exact external-secrets-file pattern from the LLM
+  keys work: a new `~/.config/dev-projects/grafana-cloud.env`, referenced
+  via `GRAFANA_CLOUD_ENV_PATH` in `infra/.env`, let `docker-compose`'s
+  core-api point at the user's *real* Grafana Cloud stack for genuine live
+  verification — this session never read the file's contents directly.
+- Production rollout is documented (`infra/k8s/README.md` §12), not
+  automated: the non-secret OTLP endpoint URLs are checked into
+  `core-api-config` directly (confirmed working, not placeholders), but
+  the Basic-auth header is the user's action against the live cluster,
+  same trust boundary as every other secret in this project.
+- Added `infra/grafana/core-api-overview.json`, a checked-in dashboard
+  (request rate, error rate, JVM memory, Kafka publish rate) — verified
+  live with real data for all four panels, including deliberately
+  triggering a 502 (by calling `/api/leaderboard` while `event-worker`
+  wasn't running in the test session) to confirm the error-rate panel
+  actually renders when a real error exists, not just when it's empty.
+
+**Errors & lessons**
+- *Same endpoint-path convention bug, new context*: exactly the
+  Spring-vs-native-SDK OTLP path mismatch documented during the local
+  Jaeger work recurred against Grafana Cloud — Spring's
+  `management.otlp.tracing.endpoint` needs the full `/v1/traces` path,
+  but Grafana Cloud's setup wizard hands you the bare base URL (matching
+  the *generic* OTel SDK convention, which auto-appends the path itself).
+  First symptom: silent 404s in the logs. Fixed by appending `/v1/traces`
+  to the user's `OTEL_EXPORTER_OTLP_ENDPOINT` value.
+- *Grafana Cloud access-policy scopes are per-signal*: after fixing the
+  path, both signals failed with 401 — and the metrics error response
+  (unlike the trace exporter's generic "Unauthorized") included the exact
+  reason: `"authentication error: invalid scope requested"`. The access
+  policy backing the API token needed both `metrics:write` and
+  `traces:write` explicitly; having one doesn't imply the other.
+- *Grafana Cloud's built-in "Test connection" button uses a stricter query
+  than what we actually emit*: it checks for `resource.service.name`,
+  `resource.service.namespace`, AND `resource.deployment.environment` all
+  matching — but core-api only sets `service.name` (from
+  `spring.application.name`); we never configured the other two resource
+  attributes. The button reporting failure didn't mean data wasn't
+  arriving — checking directly in Explore with just
+  `{resource.service.name="core-api"}` confirmed traces were present all
+  along. Lesson: a vendor's canned "test connection" check can encode
+  assumptions about *how* you were expected to instrument (their wizard's
+  own convention) that don't hold for a different instrumentation path —
+  don't treat it as ground truth over checking the raw data yourself.
+- *Metric names required live confirmation, not documentation-based
+  guessing*: the dashboard's first draft guessed `http_server_requests_seconds_count`
+  and `kafka_producer_record_send_total` (no `topic` label) based on
+  general Prometheus/Micrometer conventions. Both were wrong in
+  specifics: Micrometer's OTLP registry actually uses
+  `http_server_requests_milliseconds_count` (milliseconds, not seconds —
+  a real naming difference from Prometheus-scrape format) and
+  `kafka_producer_topic_record_send_total` (the per-topic variant, needed
+  for the `by (topic)` grouping the panel already used). Found both by
+  searching Explore with `{__name__=~".*http.*"}`/`{__name__=~".*kafka.*"}`
+  against the live instance rather than guessing further from docs.
+
 ## 2026-07-21 — M5 step 3: admin role for content CRUD
 
 **Shipped**
