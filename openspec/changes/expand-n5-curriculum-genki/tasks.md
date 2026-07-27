@@ -53,13 +53,14 @@
 
 ## 4. Production rollout
 
-- [ ] 4.1 (User-executed) Deploy the migration to production the normal
-      way — merge to `main`, CI builds the image, `kubectl rollout restart
-      deployment/core-api` picks it up (Flyway runs automatically on
-      startup, same as every prior migration)
-- [ ] 4.2 (User-executed) Spot-check the live site: course now shows 10
-      lessons, previously-completed lessons for any real registered users
-      remain marked complete
+- [x] 4.1 Pushed to `main` (`9c03032`), CI built the image, `kubectl
+      rollout restart deployment/core-api` — Flyway log confirmed
+      "Migrating schema public to version 11 - expand n5 lessons" against
+      the real production database
+- [x] 4.2 `GET /api/courses/.../lessons` on the live site returns all 10
+      lessons in order; queried `user_lesson_progress` directly for the
+      three real accounts with existing completions (M2 Verifier: 2,
+      aaz12: 1, demo-rehearsal: 1) — all intact, no data loss
 
 ## 5. Docs
 
