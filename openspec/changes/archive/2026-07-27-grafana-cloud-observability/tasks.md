@@ -50,9 +50,13 @@
       set `management.otlp.metrics.export.enabled` (via configmap) to
       `"true"` — exact key names, no values, matching how every prior
       cluster secret in this project was documented rather than scripted
-- [ ] 5.2 (User-executed, not a task this session runs) Apply the updated
+- [x] 5.2 (User-executed, not a task this session runs) Apply the updated
       configmap/secret on the cluster and roll out core-api; confirm
-      metrics/traces appear in Grafana Cloud from production traffic
+      metrics/traces appear in Grafana Cloud from production traffic —
+      done 2026-07-27: `core-api-secret` patched with
+      `OTEL_EXPORTER_OTLP_AUTH`, configmap applied, core-api rolled out;
+      confirmed via absence of the previously-constant 401 export errors
+      across a full metrics push cycle (see DEVLOG 2026-07-27)
 
 ## 6. Docs
 
