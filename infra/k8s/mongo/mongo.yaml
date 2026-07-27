@@ -4,6 +4,12 @@
 # the ingress, so network isolation is the boundary, not credentials.
 # --wiredTigerCacheSizeGB keeps Mongo well inside its memory limit on a
 # shared, resource-constrained node rather than sizing off host RAM.
+# --bind_ip_all is required here specifically because `command:` overrides
+# the official image's ENTRYPOINT (docker-entrypoint.sh) entirely, so its
+# usual auto-injection of --bind_ip_all never runs; mongod's own default
+# (loopback-only) took over instead, making Mongo unreachable from any
+# other pod via the Service. Local docker-compose never hit this because
+# it uses the image's default CMD without overriding `command`.
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -23,7 +29,7 @@ spec:
       containers:
         - name: mongo
           image: mongo:8
-          command: ["mongod", "--wiredTigerCacheSizeGB=0.25"]
+          command: ["mongod", "--wiredTigerCacheSizeGB=0.25", "--bind_ip_all"]
           ports:
             - containerPort: 27017
           volumeMounts:
