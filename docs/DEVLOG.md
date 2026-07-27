@@ -3,6 +3,55 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-27 — N5 course expanded from 5 to 10 lessons, referencing Genki I
+
+**Shipped**
+- OpenSpec change `expand-n5-curriculum-genki`, the first post-roadmap
+  content change (M1–M5 were already complete) — the actual teaching
+  content was the weakest part of the product: one course, five lessons,
+  ~15 minutes of material behind a fully-built polyglot backend. Deepened
+  all five existing lessons (more vocabulary, fuller grammar explanations,
+  more example sentences) and added five new lessons continuing the course
+  through the next block of Genki I's grammar — existence
+  (あります／います), telling time, daily-routine verbs with を／に／で,
+  past tense, and い/な-adjectives with すき／きらい. Original writing
+  referencing Genki I's topic sequence, not reproduced textbook text.
+- New Flyway migration (`V11__expand_n5_lessons.sql`): `UPDATE` for the
+  five existing lesson rows (content only — id/position/course_id
+  untouched, so `user_lesson_progress` stays valid), `INSERT` for the five
+  new ones at positions 6–10. Deliberately chose a migration over the
+  `admin-content-authoring` CRUD API for this: Flyway is the only mechanism
+  that guarantees every fresh environment (local compose, CI, a rebuilt
+  cluster) has the content from first boot — the admin API remains the
+  right tool for live, ad-hoc edits after this lands, not baseline seed
+  data.
+- New lessons need zero exercise-seeding work — `ai-exercise-svc` already
+  generates and caches exercises for any lesson on first request; verified
+  lesson 6 live and got real, content-specific questions (quizzing
+  あります vs います, and した) in ~25s, graded correctly, completion
+  propagated to progress (`{"completed":3,"total":10}` after completing
+  lessons 1, 4, and 6 with a fresh test user).
+- A real constraint caught during design, before any content was written:
+  `V9`'s two seeded exercises on lessons 1 and 4 quote specific phrases
+  verbatim (ありがとうございます, すみません, and the は／です pattern in
+  わたしは がくせい です) — rewriting those lessons had to keep those exact
+  terms intact or two already-correct exercises would silently become
+  wrong. Verified directly: submitted the original correct answers against
+  the rewritten lessons and all four still graded `correct:true`.
+
+**Errors & lessons**
+- *A UUID typo caught before running the migration, not after*: the tenth
+  lesson's id was briefly written as `...00000000000a` (hex) instead of
+  `...000000000010` (decimal), breaking this project's established
+  zero-padded-decimal ID convention. Caught by re-reading the file
+  immediately after writing it, before applying anything.
+- *A local-only bug found along the way, unrelated to this change*:
+  gitignored `infra/.env` had `claLLM_KEYS_ENV_PATH` instead of
+  `LLM_KEYS_ENV_PATH` (a stray `cla` prefix, cause unknown — possibly a
+  paste artifact from an earlier session), silently breaking the LLM keys
+  wiring for local `ai-exercise-svc` verification. Fixed directly since the
+  file only contains a path, not a secret value.
+
 ## 2026-07-27 — demo rehearsal against production found (and fixed) two real bugs
 
 **Shipped**
