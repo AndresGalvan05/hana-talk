@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-exercise-svc-config
+  namespace: hanatalk
+data:
+  MONGO_URI: "mongodb://mongo:27017"
+  # Base URL only -- unlike core-api's Spring config, the Python OTel SDK
+  # appends /v1/traces itself. Same underlying Grafana Cloud stack as
+  # core-api's OTEL_EXPORTER_OTLP_ENDPOINT (which does include the path).
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"

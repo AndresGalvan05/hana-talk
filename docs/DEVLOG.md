@@ -3,6 +3,71 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-27 — ai-exercise-svc, event-worker, and MongoDB deployed to production
+
+**Shipped**
+- Closed the gap `grafana-cloud-observability` and `architecture-doc-and-demo-script`
+  both explicitly called out: `ai-exercise-svc` and `event-worker` had only
+  ever run via `docker-compose`. Deployed both to the k3s cluster, plus
+  MongoDB (`infra/k8s/mongo/` — a bare single-replica StatefulSet, no auth,
+  same ClusterIP-only network isolation as Kafka).
+- Three secrets created/updated directly against the cluster through the SSH
+  tunnel — none of their values were ever pasted into chat or read by the
+  assistant. `core-api-secret` gained `OTEL_EXPORTER_OTLP_AUTH` via an
+  add-only `kubectl patch` (never had to re-supply the existing DB/JWT
+  values); `ai-exercise-svc-secret` and `event-worker-secret` created fresh
+  from `~/.config/dev-projects/llm-keys.env` and
+  `~/.config/dev-projects/grafana-cloud.env`. `core-api-config` gained
+  `AI_EXERCISE_SVC_URL`/`EVENT_WORKER_URL`.
+- Production now runs the full five-service architecture live — the
+  `docs/DEMO_SCRIPT.md` scoping note ("production doesn't have
+  `ai-exercise-svc`/`event-worker` deployed") is now stale; re-scoping the
+  demo to the live site is a natural next step, not done in this session.
+
+**Errors & lessons — three real bugs found by actually deploying, not just
+building**
+- *event-worker's Dockerfile shipped amd64 binaries under an arm64-tagged
+  manifest.* `ARG TARGETARCH=amd64` had a **hardcoded default at global
+  scope** — the documented anti-pattern for BuildKit's auto-populated
+  platform args: a literal default shadows BuildKit's per-platform
+  injection during a multi-arch push, so every platform silently built with
+  the same value. First fix attempt (just re-declaring `ARG TARGETARCH`
+  after `FROM`) wasn't enough on its own; the global hardcoded default had
+  to go too. Caught by not trusting registry manifest metadata — pulled the
+  binary into a debug pod and read the raw ELF header (`e_machine`) to
+  confirm the actual architecture directly, twice, before touching prod
+  again.
+- *event-worker's `DB_URL` was built via raw k8s `$(VAR)` string
+  interpolation* (`postgres://$(DB_USERNAME):$(DB_PASSWORD)@postgres:5432/...`)
+  — plain-text expansion with zero escaping. The generated `DB_PASSWORD`
+  contains a URL-meaningful character, which broke DSN parsing outright once
+  actually deployed (this had simply never been exercised against a real
+  generated password before). Fixed the way core-api already does it —
+  credentials never go in the URL string; `DB_USERNAME`/`DB_PASSWORD` stay
+  separate env vars, combined into the DSN via Go's `net/url` (which
+  percent-encodes correctly) inside `config.Load()`. Added a regression test
+  covering exactly this failure class.
+- *Editing a k8s manifest isn't the same as applying it.* Fixed and
+  committed the `DB_URL` change above, rebuilt via CI, restarted the
+  deployment — and hit the exact same crash, because the **old** Deployment
+  spec was still live. The fix reached git (triggering the image build) but
+  was never `kubectl apply`'d — there's no GitOps here, applying manifests
+  is a manual step entirely separate from the CI that builds images.
+  Applied it; then it worked.
+- *Grafana Cloud auth 401 across all three services turned out to be a file
+  bug, not a code bug.* `~/.config/dev-projects/grafana-cloud.env`'s
+  `OTEL_EXPORTER_OTLP_AUTH` line had an unquoted value containing a space
+  ("Basic \<token\>") — sourcing it in a shell script silently truncated it
+  to just the word "Basic" (5 characters). Diagnosed by checking the string
+  length after sourcing (`${#VAR}`) and testing the credential directly with
+  `curl` against the real Grafana OTLP endpoint, bypassing every SDK's own
+  header formatting to isolate the credential itself from how each language
+  encodes it. Fixed by quoting the full value; length went from 5 to 222 and
+  every service's export errors stopped immediately.
+- Common thread across all three: verify the actual artifact (binary
+  architecture, live pod env, credential length/response) instead of
+  trusting that a fix which *looks* right in a diff actually took effect.
+
 ## 2026-07-21 — M5 final: architecture doc + demo script — roadmap complete
 
 **Shipped**

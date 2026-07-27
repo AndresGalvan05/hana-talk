@@ -6,6 +6,8 @@ metadata:
 data:
   DB_URL: "jdbc:postgresql://postgres:5432/hanatalk"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  AI_EXERCISE_SVC_URL: "http://ai-exercise-svc:8000"
+  EVENT_WORKER_URL: "http://event-worker:8090"
   # Grafana Cloud OTLP endpoint (M5) — direct export, no in-cluster
   # collector/agent. Endpoint URLs are meaningless without the
   # Authorization header in core-api-secret (OTEL_EXPORTER_OTLP_AUTH),

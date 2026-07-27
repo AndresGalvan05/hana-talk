@@ -53,7 +53,7 @@ for a runnable 2-minute walkthrough.
 | [frontend](frontend/) | React + TypeScript (Vite) | **Working.** Auth, course browsing, lessons, progress, LLM-generated practice exercises; nginx production image |
 | [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | **Working.** Gemini → Groq → OpenRouter provider failover chain, Mongo cache per lesson; called synchronously by core-api |
 | [event-worker](event-worker/) | Go + Kafka consumer | **Working.** Consumes `user.registered`/`exercise.completed`, day-granularity streaks + leaderboard, proxied through core-api |
-| [infra](infra/k8s/) (k8s on Oracle) | k3s, Kafka (KRaft), Cloudflare | **Deployed.** Single-node k3s, multi-arch GHCR images, Traefik + Origin CA TLS — see the [runbook](infra/k8s/README.md) |
+| [infra](infra/k8s/) (k8s on Oracle) | k3s, Kafka (KRaft), Cloudflare | **Deployed.** Single-node k3s running all five services (core-api, frontend, ai-exercise-svc, event-worker, MongoDB), multi-arch GHCR images, Traefik + Origin CA TLS — see the [runbook](infra/k8s/README.md) |
 
 **Key design decisions:**
 

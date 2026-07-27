@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-worker-config
+  namespace: hanatalk
+data:
+  # Base URL only, same reasoning as ai-exercise-svc-config -- the Go OTel
+  # SDK appends /v1/traces itself.
+  OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"

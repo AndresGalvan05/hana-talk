@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-exercise-svc
+  namespace: hanatalk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-exercise-svc
+  template:
+    metadata:
+      labels:
+        app: ai-exercise-svc
+    spec:
+      containers:
+        - name: ai-exercise-svc
+          image: ghcr.io/andresgalvan05/hana-talk/ai-exercise-svc:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: ai-exercise-svc-config
+            - secretRef:
+                name: ai-exercise-svc-secret
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-exercise-svc
+  namespace: hanatalk
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-exercise-svc
+  ports:
+    - port: 8000
+      targetPort: 8000
