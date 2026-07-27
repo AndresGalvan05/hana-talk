@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-worker
+  namespace: hanatalk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-worker
+  template:
+    metadata:
+      labels:
+        app: event-worker
+    spec:
+      containers:
+        - name: event-worker
+          image: ghcr.io/andresgalvan05/hana-talk/event-worker:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8090
+          env:
+            # DB credentials reused from core-api-secret -- never duplicated
+            # into a new secret, so the real password value never has to be
+            # retrieved/retyped. Kept as separate env vars rather than
+            # composed into DB_URL via k8s' $(VAR) plain-text expansion:
+            # that can't percent-encode anything, so a generated password
+            # containing a URL-meaningful character broke the DSN outright.
+            # config.Load() combines these into DB_URL itself via net/url.
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: core-api-secret
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: core-api-secret
+                  key: DB_PASSWORD
+            - name: DB_URL
+              value: "postgres://postgres:5432/hanatalk"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: INTERNAL_API_PORT
+              value: "8090"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: event-worker-config
+                  key: OTEL_EXPORTER_OTLP_ENDPOINT
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: event-worker-secret
+                  key: OTEL_EXPORTER_OTLP_HEADERS
+          # No /health route exists on event-worker's internal API today;
+          # a TCP-socket probe avoids adding one for this rollout, matching
+          # kafka.yaml's identical rationale (documented there).
+          readinessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-worker
+  namespace: hanatalk
+spec:
+  type: ClusterIP
+  selector:
+    app: event-worker
+  ports:
+    - port: 8090
+      targetPort: 8090
