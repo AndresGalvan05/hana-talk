@@ -7,6 +7,7 @@
 ARG BUILDPLATFORM=linux/amd64
 ARG TARGETARCH=amd64
 FROM --platform=$BUILDPLATFORM golang:1-alpine AS builder
+ARG TARGETARCH
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
