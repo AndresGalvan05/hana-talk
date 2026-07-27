@@ -11,7 +11,9 @@ tracing) is now demoable against the real thing, not a local stand-in.
 - Register one throwaway user at https://hanatalk.online ahead of time so
   login is instant during the demo. This is a real account in the
   production database — harmless, but it's not something a `compose down -v`
-  wipes afterward.
+  wipes afterward. **Don't register it more than ~45 minutes before you
+  start** — JWTs expire after 1 hour (`JwtService.kt`), and re-logging in
+  mid-demo is an easy but avoidable interruption.
 - Note which of the five seeded N5 lessons (fixture IDs in `CLAUDE.md`,
   course `0b4f9a12-1111-...`) you'll open for the "watch it generate live"
   beat, and **don't open it yourself beforehand** — the first-ever request

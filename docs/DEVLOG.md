@@ -3,6 +3,87 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-27 — demo rehearsal against production found (and fixed) two real bugs
+
+**Shipped**
+- Rehearsed `docs/DEMO_SCRIPT.md` live against https://hanatalk.online, step
+  by step, rather than trusting that "all pods 1/1 Running" from the earlier
+  deploy session meant the actual user-facing flow worked. It didn't, twice
+  over — see below. Checked the `exercises` table directly via `psql` first
+  (not the API) to see which of the five seeded lessons already had cached
+  exercises without accidentally triggering generation on a fresh one;
+  rehearsed against lesson 2, left lessons 3 and 5 completely untouched for
+  the real interview.
+- After both fixes (below), verified the entire script end to end: real
+  Gemini-generated MCQ + fill-in-blank exercises rendered for a never-before-
+  requested lesson, a correct answer produced the completion banner with no
+  page reload, `GET /api/users/me/streak` and `GET /api/leaderboard` both
+  returned correct data through the Kafka → `event-worker` path, and the full
+  admin flow worked (403 as a regular user → SQL promotion → 201 course
+  creation → 204 cleanup delete).
+
+**Errors & lessons — two real bugs, both invisible to every prior health
+check**
+- *The frontend hadn't been redeployed since M2 (8 days stale).* Opening a
+  lesson showed no "Practice exercises" section at all — not even a loading
+  state, no console error, nothing. Root cause: `exercise-practice-ui`
+  (2026-07-20) shipped a new frontend image, but nobody ever ran
+  `kubectl rollout restart deployment/frontend` against production after —
+  the deploy step is a separate manual action from the CI that builds the
+  image, and it was simply never done. `kubectl get pods` alone can't catch
+  this: a pod can be perfectly healthy while running week-old code. Fixed
+  with a rollout restart; confirmed via `git log --since -- frontend/` that
+  this was the only frontend change stuck behind it.
+- *MongoDB had never actually been reachable from any other pod, the entire
+  5 days it's been deployed.* Once the frontend fix let the real request
+  through, it failed with `pymongo.errors.ServerSelectionTimeoutError:
+  mongo:27017: Connection refused`. `infra/k8s/mongo/mongo.yaml`'s
+  `command: ["mongod", "--wiredTigerCacheSizeGB=0.25"]` replaces the official
+  image's `ENTRYPOINT` (`docker-entrypoint.sh`) outright, so its usual
+  auto-injection of `--bind_ip_all` never ran — `mongod` silently fell back
+  to its own loopback-only default. The readiness/liveness probes
+  (`mongosh` exec'd from inside the same pod, effectively `127.0.0.1`)
+  had been passing the whole time, which is exactly why this stayed
+  invisible: pod health and Service reachability are different things, and
+  nothing before this rehearsal had ever actually sent real cross-pod
+  traffic to Mongo. Confirmed the diagnosis directly (`socket.create_connection`
+  from inside the `ai-exercise-svc` pod, then inspecting `mongod`'s actual
+  listening sockets — all bound to `127.0.0.1`) before touching anything,
+  rather than guessing. Fixed by adding `--bind_ip_all` explicitly. Local
+  docker-compose never hit this because it never overrides `command` for
+  Mongo, so the image's own entrypoint script handles it there.
+- *A cascade of shell/quoting failures trying to run one `UPDATE` statement*,
+  none of them the SQL's fault: (1) a raw `kubectl exec ... psql -c "..."`
+  attempted directly by the assistant was correctly blocked by the harness's
+  permission classifier as a direct production DB write — by design, not a
+  bug; (2) the user's first attempt ran it via `ssh oci` directly on the VM,
+  which failed because `/etc/rancher/k3s/k3s.yaml` is root-only on Oracle
+  Linux 9 (a previously-documented gotcha, just newly relevant here); (3) a
+  copy-pasted long single-line command silently lost its closing quote in
+  transit, leaving the shell open on a `>` continuation prompt with nothing
+  actually executed; (4) `export KUBECONFIG=...` is invalid in the user's
+  actual shell (fish) and failed silently rather than erroring, so `kubectl`
+  fell back to its hardcoded `localhost:8080` default; (5) even `env
+  KUBECONFIG=... kubectl ...` (normally shell-agnostic) hit the same
+  `localhost:8080` fallback, traced to the SSH tunnel having quietly died at
+  some point during the long session — restarted it and confirmed
+  reachability directly before troubleshooting further; (6) a final quoting
+  loss on the same long `-c "..."` line reproduced even with an explicit
+  `--kubeconfig=` flag. Resolved by sidestepping shell quoting entirely:
+  `kubectl exec -it postgres-0 -- psql ...` into an interactive session and
+  typing the `UPDATE` directly at the `psql` prompt, where it never has to
+  survive being embedded in a shell command line at all. Lesson: after two
+  failed attempts at getting the same string through shell-plus-copy-paste
+  intact, stop trying to fix the quoting and remove the shell from the path
+  instead.
+- *JWT expiry (1 hour, `JwtService.kt`) surfaced mid-rehearsal as a plain
+  401*, not a bug — the demo user's token from early in the session had
+  simply expired by the time the admin-flow retry happened, after the
+  quoting saga above ate real wall-clock time. Fixed by logging back in.
+  Added a note to `docs/DEMO_SCRIPT.md`'s prep section: don't register the
+  throwaway demo user more than ~45 minutes before the actual interview
+  starts.
+
 ## 2026-07-27 — ai-exercise-svc, event-worker, and MongoDB deployed to production
 
 **Shipped**
