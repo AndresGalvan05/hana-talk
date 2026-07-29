@@ -1,6 +1,9 @@
 package online.hanatalk
 
 import online.hanatalk.api.LessonController
+import online.hanatalk.api.dto.CultureNote
+import online.hanatalk.api.dto.Dialogue
+import online.hanatalk.api.dto.LessonContent
 import online.hanatalk.api.dto.LessonResponse
 import online.hanatalk.security.JwtService
 import online.hanatalk.security.SecurityConfig
@@ -41,15 +44,25 @@ class LessonControllerTest {
 
     private val courseId = UUID.randomUUID()
 
+    private val sampleContent =
+        LessonContent(
+            grammarPoints = emptyList(),
+            dialogue = Dialogue(title = "t", lines = emptyList()),
+            cultureNote = CultureNote(title = "t", body = "b"),
+        )
+
     private val sampleLesson =
         LessonResponse(
             id = UUID.randomUUID(),
             courseId = courseId,
             title = "Saludos",
-            content = "Hola, buenos días...",
+            content = sampleContent,
             position = 1,
             createdAt = Instant.now(),
         )
+
+    private val sampleContentJson =
+        """{"grammarPoints":[],"dialogue":{"title":"t","lines":[]},"cultureNote":{"title":"t","body":"b"}}"""
 
     @Test
     fun `list lessons is public`() {
@@ -77,7 +90,7 @@ class LessonControllerTest {
     fun `create lesson without auth returns 401`() {
         mockMvc.post("/api/courses/$courseId/lessons") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Saludos","content":"Hola","position":1}"""
+            content = """{"title":"Saludos","content":$sampleContentJson,"position":1}"""
         }.andExpect { status { isUnauthorized() } }
     }
 
@@ -88,7 +101,7 @@ class LessonControllerTest {
 
         mockMvc.post("/api/courses/$courseId/lessons") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Saludos","content":"Hola","position":1}"""
+            content = """{"title":"Saludos","content":$sampleContentJson,"position":1}"""
         }.andExpect {
             status { isCreated() }
             jsonPath("$.title") { value("Saludos") }
@@ -102,7 +115,7 @@ class LessonControllerTest {
 
         mockMvc.put("/api/courses/$courseId/lessons/${sampleLesson.id}") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Updated","content":"New content","position":2}"""
+            content = """{"title":"Updated","content":$sampleContentJson,"position":2}"""
         }.andExpect { status { isOk() } }
     }
 
@@ -118,7 +131,7 @@ class LessonControllerTest {
     fun `create lesson as non-admin returns 403`() {
         mockMvc.post("/api/courses/$courseId/lessons") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Saludos","content":"Hola","position":1}"""
+            content = """{"title":"Saludos","content":$sampleContentJson,"position":1}"""
         }.andExpect { status { isForbidden() } }
     }
 
@@ -127,7 +140,7 @@ class LessonControllerTest {
     fun `update lesson as non-admin returns 403`() {
         mockMvc.put("/api/courses/$courseId/lessons/${sampleLesson.id}") {
             contentType = MediaType.APPLICATION_JSON
-            content = """{"title":"Updated","content":"New content","position":2}"""
+            content = """{"title":"Updated","content":$sampleContentJson,"position":2}"""
         }.andExpect { status { isForbidden() } }
     }
 

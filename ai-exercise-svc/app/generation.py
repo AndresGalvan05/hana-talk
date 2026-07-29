@@ -1,5 +1,5 @@
 from app.providers import call_gemini, call_groq, call_openrouter
-from app.schemas import GenerationResult
+from app.schemas import GenerationResult, GrammarPointInput
 
 
 class GenerationFailedError(Exception):
@@ -8,25 +8,36 @@ class GenerationFailedError(Exception):
 
 _PROMPT_TEMPLATE = """\
 You are writing exercises for a Japanese language learner studying JLPT
-level {jlpt_level}. Based on the lesson content below, write exactly one
-multiple-choice (MCQ) exercise and exactly one fill-in-the-blank exercise
-that test understanding of the lesson's content.
+level {jlpt_level}. The lesson below covers the following grammar points,
+in order:
 
-For the MCQ exercise, provide 3-4 plausible options, exactly one of which is
-correct, and set correct_answer to that option's exact text.
+{grammar_points}
 
-For the fill-in-the-blank exercise, do not provide options; correct_answer
+Write one exercise (either multiple-choice or fill-in-the-blank) testing
+each grammar point above -- write two exercises, of different types, for
+any point that covers more than one distinct rule. Across the whole batch,
+include at least one multiple-choice exercise and at least one
+fill-in-the-blank exercise.
+
+For a multiple-choice exercise, provide 3-4 plausible options, exactly one
+of which is correct, and set correct_answer to that option's exact text.
+
+For a fill-in-the-blank exercise, do not provide options; correct_answer
 is the single expected word or short phrase.
-
-Lesson content:
-\"\"\"
-{content}
-\"\"\"
 """
 
 
-def generate_exercises(content: str, jlpt_level: str) -> GenerationResult:
-    prompt = _PROMPT_TEMPLATE.format(jlpt_level=jlpt_level, content=content)
+def _format_grammar_points(grammar_points: list[GrammarPointInput]) -> str:
+    lines = (f"{i}. {p.title} -- {p.explanation}" for i, p in enumerate(grammar_points, start=1))
+    return "\n".join(lines)
+
+
+def generate_exercises(
+    grammar_points: list[GrammarPointInput],
+    jlpt_level: str,
+) -> GenerationResult:
+    formatted_points = _format_grammar_points(grammar_points)
+    prompt = _PROMPT_TEMPLATE.format(jlpt_level=jlpt_level, grammar_points=formatted_points)
     schema = GenerationResult.model_json_schema()
     last_error: Exception | None = None
 

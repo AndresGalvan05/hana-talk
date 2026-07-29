@@ -19,7 +19,7 @@ def generate(request: GenerateRequest) -> GenerationResult:
         return cached
 
     try:
-        result = generate_exercises(request.content, request.jlpt_level)
+        result = generate_exercises(request.grammar_points, request.jlpt_level)
     except GenerationFailedError as exc:
         raise HTTPException(status_code=502, detail=f"generation failed: {exc}") from exc
 

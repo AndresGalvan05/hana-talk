@@ -3,9 +3,14 @@ package online.hanatalk.client
 import com.fasterxml.jackson.annotation.JsonProperty
 import online.hanatalk.domain.exercise.ExerciseType
 
+data class GrammarPointInputDto(
+    val title: String,
+    val explanation: String,
+)
+
 data class GenerateExercisesRequest(
     @JsonProperty("lesson_id") val lessonId: String,
-    val content: String,
+    @JsonProperty("grammar_points") val grammarPoints: List<GrammarPointInputDto>,
     @JsonProperty("jlpt_level") val jlptLevel: String,
 )
 

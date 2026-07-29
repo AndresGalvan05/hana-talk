@@ -53,10 +53,12 @@ Production is live at https://hanatalk.online (M2, 2026-07-19).
 2. Use the **Playwright MCP server** (installed) to drive http://localhost:5173:
    register a fresh user → course list → open "JLPT N5: First Steps in Japanese"
    → open a lesson → Mark as complete → back to course → checkmark + progress bar.
-3. Seeded fixture data (Flyway `V7`, expanded to 10 lessons by `V11`): course
-   `0b4f9a12-1111-4a5e-9d3c-000000000001`, lessons
-   `0b4f9a12-2222-4a5e-9d3c-00000000000{1..9}` +
-   `0b4f9a12-2222-4a5e-9d3c-000000000010`. No seeded users — register one.
+3. Seeded fixture data (Flyway `V7`, restructured to 5 chapter-depth lessons
+   by `V12`): course `0b4f9a12-1111-4a5e-9d3c-000000000001`, lessons
+   `0b4f9a12-2222-4a5e-9d3c-00000000000{1..5}`. Lesson content is now
+   structured (`contentJson`: grammar points, dialogue, culture note) —
+   vocabulary is a separate `GET /api/lessons/{id}/vocabulary` call. No
+   seeded users — register one.
 4. Kafka spot-check:
    `docker exec infra-kafka-1 /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic exercise.completed --from-beginning --timeout-ms 5000`
 

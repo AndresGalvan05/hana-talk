@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ExercisePractice } from '../components/ExercisePractice'
+import { VocabularyTable } from '../components/VocabularyTable'
+import { GrammarPointCard } from '../components/GrammarPointCard'
+import { DialogueBox } from '../components/DialogueBox'
+import { CultureNoteAside } from '../components/CultureNoteAside'
 import { api } from '../api/client'
-import type { CourseProgress, Lesson } from '../api/types'
+import type { CourseProgress, Lesson, VocabularyItem } from '../api/types'
 
 export function LessonPage() {
   const { courseId, lessonId } = useParams()
   const [lesson, setLesson] = useState<Lesson | null>(null)
+  const [vocabulary, setVocabulary] = useState<VocabularyItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
   const [completed, setCompleted] = useState(false)
@@ -21,6 +26,14 @@ export function LessonPage() {
       })
       .catch(() => {
         if (!cancelled) setError('Could not load this lesson.')
+      })
+    api
+      .get<VocabularyItem[]>(`/api/lessons/${lessonId}/vocabulary`)
+      .then((data) => {
+        if (!cancelled) setVocabulary(data)
+      })
+      .catch(() => {
+        /* non-fatal: the rest of the lesson still renders without vocabulary */
       })
     api
       .get<CourseProgress>(`/api/courses/${courseId}/progress`)
@@ -74,7 +87,14 @@ export function LessonPage() {
       {lesson && (
         <article className="card lesson-content">
           <h1>{lesson.title}</h1>
-          <pre className="lesson-text">{lesson.content}</pre>
+          <VocabularyTable items={vocabulary} />
+          <div className="grammar-points">
+            {lesson.content.grammarPoints.map((point, index) => (
+              <GrammarPointCard key={point.title} point={point} index={index + 1} />
+            ))}
+          </div>
+          <DialogueBox dialogue={lesson.content.dialogue} />
+          <CultureNoteAside note={lesson.content.cultureNote} />
           {completed ? (
             <p className="success">
               ✅ Lesson completed!

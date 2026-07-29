@@ -3,6 +3,66 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-29 — Structured lesson content: 10 shallow lessons → 5 real chapters
+
+**Shipped**
+- OpenSpec change `structured-lesson-content` — the response to the user
+  calling the just-expanded 10-lesson course "still very lacking and short"
+  and the site "superficial." The real gap wasn't word count: `Lesson.content`
+  was a single flat-text column with no concept of "vocabulary," "grammar
+  point," or "dialogue," so there was no structure to render depth into even
+  if the text got longer. Replaced it with a genuinely structured model and
+  consolidated to 5 chapter-depth lessons (mapped 1:1 to Genki I Lessons 1-5's
+  topic scope), each with a vocab list, 7-8 grammar points with examples, an
+  original dialogue, and a culture note. Content is original writing — the
+  Genki I textbook, workbook, and teacher's manual (now under
+  `reference-material/`, gitignored, carries an explicit "no scanning and
+  uploading" copyright notice) were used only to check topic scope and
+  grammar accuracy, never transcribed or paraphrased.
+- `Lesson.content` → `Lesson.contentJson` (JSON string column, same pattern
+  `Exercise.optionsJson` already used — not a new JSONB type, not new
+  normalized tables for grammar/dialogue, since none of that needs SQL-level
+  querying). Vocabulary is the one exception: a real `vocabulary_items`
+  table, because a future spaced-repetition feature needs per-item,
+  per-user review queries that are impossible against a JSON blob — decided
+  now specifically so it doesn't need a breaking migration later. New
+  `GET /api/lessons/{id}/vocabulary` endpoint (matches the existing
+  top-level `/api/lessons/{id}/exercises` routing convention).
+- `V9`'s seeded placeholder exercises are gone — every lesson now generates
+  real exercises on demand, so the seed-exercise escape hatch that only
+  ever existed because `ai-exercise-svc` didn't exist yet at M3 slice 1 is
+  no longer needed. The 10 old lesson rows were replaced outright (not
+  edited), which cascade-deleted their `user_lesson_progress`/`exercises`
+  rows — accepted deliberately: only test/demo accounts had any progress at
+  this stage, no real end users to lose data.
+- `ai-exercise-svc`'s generation floor changed from a hardcoded "exactly 1
+  MCQ + 1 fill-in-blank" to "at least 4 exercises, at least one of each
+  type," driven by the lesson's actual `grammarPoints` list instead of flat
+  text. Verified live against lesson 1 (7 grammar points): 9 exercises
+  generated in one real call, covering nearly every point.
+- Frontend: `LessonPage.tsx`'s single `<pre>` block replaced with four new
+  components (`VocabularyTable`, `GrammarPointCard`, `DialogueBox`,
+  `CultureNoteAside`). Verified live via Chrome automation — all four
+  render correctly, and the completion banner correctly shows the course's
+  new total (`1 / 5`).
+
+**Errors & lessons**
+- *A test-only Jackson gap, not a production bug*: `ExerciseServiceTest`
+  constructs its own `ObjectMapper()` directly rather than getting Spring's
+  auto-configured bean, which meant it lacked the `jackson-module-kotlin`
+  registration Spring Boot auto-detects and wires up in the real app —
+  deserializing the new `LessonContent` (a Kotlin data class tree) failed
+  with `InvalidDefinitionException` in the test only. Confirmed it was
+  test-only by checking for any custom `ObjectMapper` `@Bean` overriding
+  Spring's auto-configuration (none exists) before concluding production
+  was unaffected. Fixed with `.registerKotlinModule()` on the test's mapper.
+- *Browser screenshots flaked mid-scroll during verification* (CDP
+  `Page.captureScreenshot` timeouts) — switched to `get_page_text` to
+  confirm the dialogue box and culture note rendered correctly instead of
+  fighting the screenshot tool further; got a full, readable text dump of
+  the rendered page in one call, which was actually more thorough
+  verification than a screenshot would have been anyway.
+
 ## 2026-07-27 — N5 course expanded from 5 to 10 lessons, referencing Genki I
 
 **Shipped**

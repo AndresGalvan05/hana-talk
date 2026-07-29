@@ -282,14 +282,115 @@ label {
   padding: 1.5rem;
 }
 
-.lesson-text {
-  white-space: pre-wrap;
-  font-family: inherit;
-  font-size: 1rem;
+.vocabulary-table {
+  margin: 1rem 0 1.5rem;
+}
+
+.vocabulary-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.vocabulary-table th {
+  text-align: left;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.vocabulary-table td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.grammar-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.grammar-point-card {
   background: var(--bg);
   border-radius: 8px;
   padding: 1rem;
-  margin: 1rem 0;
+}
+
+.grammar-point-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.grammar-point-index {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.8rem;
+}
+
+.example-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.example-japanese {
+  font-weight: 600;
+}
+
+.dialogue-box {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.dialogue-lines {
+  list-style: none;
+  padding: 0;
+  margin: 0.6rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.dialogue-speaker {
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.dialogue-japanese {
+  margin-right: 0.5rem;
+}
+
+.dialogue-english {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.culture-note {
+  background: var(--surface);
+  border: 1px dashed var(--accent);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0 0 1.5rem;
+}
+
+.culture-note h2 {
+  margin-top: 0;
 }
 
 .exercise-practice {

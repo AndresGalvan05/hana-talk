@@ -3,9 +3,11 @@ package online.hanatalk.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import online.hanatalk.api.dto.AttemptResponse
 import online.hanatalk.api.dto.ExerciseResponse
+import online.hanatalk.api.dto.LessonContent
 import online.hanatalk.api.dto.toResponse
 import online.hanatalk.client.AiExerciseSvcClient
 import online.hanatalk.client.GeneratedExerciseDto
+import online.hanatalk.client.GrammarPointInputDto
 import online.hanatalk.domain.course.CourseRepository
 import online.hanatalk.domain.exercise.Exercise
 import online.hanatalk.domain.exercise.ExerciseAttempt
@@ -43,7 +45,9 @@ class ExerciseService(
             courseRepository.findByIdOrNull(lesson.courseId)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found")
 
-        val result = aiExerciseSvcClient.generateExercises(lessonId, lesson.content, course.jlptLevel.name)
+        val content = objectMapper.readValue(lesson.contentJson, LessonContent::class.java)
+        val grammarPoints = content.grammarPoints.map { GrammarPointInputDto(it.title, it.explanation) }
+        val result = aiExerciseSvcClient.generateExercises(lessonId, grammarPoints, course.jlptLevel.name)
         val generated = exerciseRepository.saveAll(result.exercises.map { it.toEntity(lessonId) })
         return generated.map { it.toResponse(parseOptions(it)) }
     }

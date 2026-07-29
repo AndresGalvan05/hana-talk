@@ -16,8 +16,8 @@ class Lesson(
     val courseId: UUID,
     @Column(nullable = false)
     var title: String,
-    @Column(nullable = false, columnDefinition = "TEXT")
-    var content: String,
+    @Column(name = "content_json", nullable = false, columnDefinition = "TEXT")
+    var contentJson: String,
     @Column(nullable = false)
     var position: Int,
     @Column(name = "created_at", nullable = false, updatable = false)

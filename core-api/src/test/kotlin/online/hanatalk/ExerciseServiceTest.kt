@@ -1,9 +1,11 @@
 package online.hanatalk
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import online.hanatalk.client.AiExerciseSvcClient
 import online.hanatalk.client.GeneratedExerciseDto
 import online.hanatalk.client.GenerationResultDto
+import online.hanatalk.client.GrammarPointInputDto
 import online.hanatalk.domain.JlptLevel
 import online.hanatalk.domain.course.Course
 import online.hanatalk.domain.course.CourseRepository
@@ -48,14 +50,18 @@ class ExerciseServiceTest {
             courseRepository,
             progressService,
             aiExerciseSvcClient,
-            ObjectMapper(),
+            ObjectMapper().registerKotlinModule(),
         )
 
     private val courseId = UUID.randomUUID()
     private val lessonId = UUID.randomUUID()
     private val userId = UUID.randomUUID()
-    private val lesson = Lesson(id = lessonId, courseId = courseId, title = "t", content = "c", position = 1)
+    private val lessonContentJson =
+        """{"grammarPoints":[{"title":"g","explanation":"e","examples":[]}],""" +
+            """"dialogue":{"title":"t","lines":[]},"cultureNote":{"title":"t","body":"b"}}"""
+    private val lesson = Lesson(id = lessonId, courseId = courseId, title = "t", contentJson = lessonContentJson, position = 1)
     private val course = Course(id = courseId, title = "c", jlptLevel = JlptLevel.N5)
+    private val expectedGrammarPoints = listOf(GrammarPointInputDto("g", "e"))
 
     private fun mcqExercise(id: UUID = UUID.randomUUID()) =
         Exercise(
@@ -151,14 +157,14 @@ class ExerciseServiceTest {
                         GeneratedExerciseDto(ExerciseType.FILL_IN_BLANK, "p", null, "b"),
                     ),
             )
-        given(aiExerciseSvcClient.generateExercises(lessonId, lesson.content, course.jlptLevel.name))
+        given(aiExerciseSvcClient.generateExercises(lessonId, expectedGrammarPoints, course.jlptLevel.name))
             .willReturn(generationResult)
         whenever(exerciseRepository.saveAll(any<List<Exercise>>())).thenAnswer { it.arguments[0] }
 
         val result = service.listByLesson(lessonId)
 
         assertEquals(2, result.size)
-        verify(aiExerciseSvcClient).generateExercises(lessonId, lesson.content, course.jlptLevel.name)
+        verify(aiExerciseSvcClient).generateExercises(lessonId, expectedGrammarPoints, course.jlptLevel.name)
     }
 
     @Test
@@ -166,7 +172,7 @@ class ExerciseServiceTest {
         given(exerciseRepository.findByLessonId(lessonId)).willReturn(emptyList())
         given(lessonRepository.findById(lessonId)).willReturn(Optional.of(lesson))
         given(courseRepository.findById(courseId)).willReturn(Optional.of(course))
-        given(aiExerciseSvcClient.generateExercises(lessonId, lesson.content, course.jlptLevel.name))
+        given(aiExerciseSvcClient.generateExercises(lessonId, expectedGrammarPoints, course.jlptLevel.name))
             .willThrow(ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc call failed"))
 
         val exception = assertThrows<ResponseStatusException> { service.listByLesson(lessonId) }

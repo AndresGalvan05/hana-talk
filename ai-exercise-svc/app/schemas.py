@@ -8,9 +8,14 @@ class ExerciseType(str, Enum):
     FILL_IN_BLANK = "FILL_IN_BLANK"
 
 
+class GrammarPointInput(BaseModel):
+    title: str
+    explanation: str
+
+
 class GenerateRequest(BaseModel):
     lesson_id: str
-    content: str
+    grammar_points: list[GrammarPointInput]
     jlpt_level: str
 
 
@@ -35,11 +40,16 @@ class GeneratedExercise(BaseModel):
         return self
 
 
+MIN_EXERCISES = 4
+
+
 class GenerationResult(BaseModel):
     exercises: list[GeneratedExercise]
 
     @model_validator(mode="after")
-    def _check_type_coverage(self) -> "GenerationResult":
+    def _check_minimum_variety(self) -> "GenerationResult":
+        if len(self.exercises) < MIN_EXERCISES:
+            raise ValueError(f"generation result must include at least {MIN_EXERCISES} exercises")
         types = {exercise.type for exercise in self.exercises}
         if ExerciseType.MCQ not in types or ExerciseType.FILL_IN_BLANK not in types:
             raise ValueError(

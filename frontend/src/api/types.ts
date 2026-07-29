@@ -13,13 +13,54 @@ export interface Course {
   createdAt: string
 }
 
+export interface ExampleSentence {
+  japanese: string
+  romaji: string
+  english: string
+}
+
+export interface GrammarPoint {
+  title: string
+  explanation: string
+  examples: ExampleSentence[]
+}
+
+export interface DialogueLine {
+  speaker: string
+  japanese: string
+  english: string
+}
+
+export interface Dialogue {
+  title: string
+  lines: DialogueLine[]
+}
+
+export interface CultureNote {
+  title: string
+  body: string
+}
+
+export interface LessonContent {
+  grammarPoints: GrammarPoint[]
+  dialogue: Dialogue
+  cultureNote: CultureNote
+}
+
 export interface Lesson {
   id: string
   courseId: string
   title: string
-  content: string
+  content: LessonContent
   position: number
   createdAt: string
+}
+
+export interface VocabularyItem {
+  id: string
+  japanese: string
+  reading: string
+  meaning: string
 }
 
 export interface CourseProgress {

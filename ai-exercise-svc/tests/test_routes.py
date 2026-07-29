@@ -4,15 +4,19 @@ from fastapi.testclient import TestClient
 
 from app.generation import GenerationFailedError
 from app.main import app
-from app.schemas import ExerciseType, GeneratedExercise, GenerationResult
+from app.schemas import ExerciseType, GeneratedExercise, GenerationResult, GrammarPointInput
 
 client = TestClient(app)
 
 _MCQ = GeneratedExercise(type=ExerciseType.MCQ, prompt="p", options=["A", "B"], correct_answer="A")
 _FILL_IN_BLANK = GeneratedExercise(type=ExerciseType.FILL_IN_BLANK, prompt="p", correct_answer="B")
-_SAMPLE_RESULT = GenerationResult(exercises=[_MCQ, _FILL_IN_BLANK])
+_SAMPLE_RESULT = GenerationResult(exercises=[_MCQ, _FILL_IN_BLANK, _MCQ, _FILL_IN_BLANK])
 
-_REQUEST_BODY = {"lesson_id": "lesson-1", "content": "some lesson text", "jlpt_level": "N5"}
+_REQUEST_BODY = {
+    "lesson_id": "lesson-1",
+    "grammar_points": [{"title": "X は Y です", "explanation": "topic + copula"}],
+    "jlpt_level": "N5",
+}
 
 
 def test_cache_hit_skips_provider_call():
@@ -39,7 +43,10 @@ def test_cache_miss_calls_provider_and_populates_cache():
         response = client.post("/generate", json=_REQUEST_BODY)
 
     assert response.status_code == 200
-    generate.assert_called_once_with("some lesson text", "N5")
+    generate.assert_called_once_with(
+        [GrammarPointInput(title="X は Y です", explanation="topic + copula")],
+        "N5",
+    )
     put_cached.assert_called_once_with("lesson-1", _SAMPLE_RESULT)
 
 

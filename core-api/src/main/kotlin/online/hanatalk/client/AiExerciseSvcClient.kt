@@ -37,7 +37,7 @@ class AiExerciseSvcClient(
     // publishing — there's no sensible "list exercises" fallback.
     fun generateExercises(
         lessonId: UUID,
-        content: String,
+        grammarPoints: List<GrammarPointInputDto>,
         jlptLevel: String,
     ): GenerationResultDto =
         try {
@@ -45,7 +45,7 @@ class AiExerciseSvcClient(
                 .post()
                 .uri("/generate")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(GenerateExercisesRequest(lessonId.toString(), content, jlptLevel))
+                .body(GenerateExercisesRequest(lessonId.toString(), grammarPoints, jlptLevel))
                 .retrieve()
                 .body(GenerationResultDto::class.java)
                 ?: throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc returned an empty response")

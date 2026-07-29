@@ -1,5 +1,7 @@
 package online.hanatalk.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import online.hanatalk.api.dto.LessonContent
 import online.hanatalk.api.dto.LessonRequest
 import online.hanatalk.api.dto.LessonResponse
 import online.hanatalk.api.dto.toResponse
@@ -16,10 +18,11 @@ import java.util.UUID
 class LessonService(
     private val lessonRepository: LessonRepository,
     private val courseRepository: CourseRepository,
+    private val objectMapper: ObjectMapper,
 ) {
     fun listForCourse(courseId: UUID): List<LessonResponse> {
         ensureCourseExists(courseId)
-        return lessonRepository.findByCourseIdOrderByPosition(courseId).map { it.toResponse() }
+        return lessonRepository.findByCourseIdOrderByPosition(courseId).map { it.toResponseWithContent() }
     }
 
     fun get(
@@ -29,7 +32,7 @@ class LessonService(
         ensureCourseExists(courseId)
         return lessonRepository.findByIdOrNull(lessonId)
             ?.takeIf { it.courseId == courseId }
-            ?.toResponse()
+            ?.toResponseWithContent()
             ?: throw lessonNotFound()
     }
 
@@ -42,10 +45,10 @@ class LessonService(
             Lesson(
                 courseId = courseId,
                 title = request.title,
-                content = request.content,
+                contentJson = objectMapper.writeValueAsString(request.content),
                 position = request.position,
             )
-        return lessonRepository.save(lesson).toResponse()
+        return lessonRepository.save(lesson).toResponse(request.content)
     }
 
     fun update(
@@ -59,9 +62,9 @@ class LessonService(
                 ?.takeIf { it.courseId == courseId }
                 ?: throw lessonNotFound()
         lesson.title = request.title
-        lesson.content = request.content
+        lesson.contentJson = objectMapper.writeValueAsString(request.content)
         lesson.position = request.position
-        return lessonRepository.save(lesson).toResponse()
+        return lessonRepository.save(lesson).toResponse(request.content)
     }
 
     fun delete(
@@ -81,4 +84,9 @@ class LessonService(
     }
 
     private fun lessonNotFound() = ResponseStatusException(HttpStatus.NOT_FOUND, "Lesson not found")
+
+    private fun Lesson.toResponseWithContent(): LessonResponse {
+        val content = objectMapper.readValue(contentJson, LessonContent::class.java)
+        return toResponse(content)
+    }
 }
