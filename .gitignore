@@ -44,3 +44,4 @@ Thumbs.db
 
 # Claude Code — per-machine permission grants, not project config
 .claude/settings.local.json
+/reference-material/

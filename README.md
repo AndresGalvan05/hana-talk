@@ -1,16 +1,26 @@
-# HanaTalk
+# 🌸 HanaTalk
+
+[![core-api](https://github.com/AndresGalvan05/hana-talk/actions/workflows/core-api.yml/badge.svg)](https://github.com/AndresGalvan05/hana-talk/actions/workflows/core-api.yml)
+[![frontend](https://github.com/AndresGalvan05/hana-talk/actions/workflows/frontend.yml/badge.svg)](https://github.com/AndresGalvan05/hana-talk/actions/workflows/frontend.yml)
+[![ai-exercise-svc](https://github.com/AndresGalvan05/hana-talk/actions/workflows/ai-exercise-svc.yml/badge.svg)](https://github.com/AndresGalvan05/hana-talk/actions/workflows/ai-exercise-svc.yml)
+[![event-worker](https://github.com/AndresGalvan05/hana-talk/actions/workflows/event-worker.yml/badge.svg)](https://github.com/AndresGalvan05/hana-talk/actions/workflows/event-worker.yml)
 
 Japanese language-learning platform organized around **JLPT levels (N5–N1)**.
 Portfolio project demonstrating polyglot backend engineering across
 Kotlin/Spring Boot, Python/FastAPI, and Go, tied together with Kafka and
 deployed on Kubernetes.
 
-**Live at [https://hanatalk.online](https://hanatalk.online)** — Cloudflare-proxied, single-node k3s on Oracle Cloud (A1 Flex, aarch64)
+**🔴 Live at [https://hanatalk.online](https://hanatalk.online)** — Cloudflare-proxied, single-node k3s on Oracle Cloud (A1 Flex, aarch64)
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full trade-offs
 discussion (sync/async boundary, the outbox trade-off, ownership
 boundaries, security, observability) and [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)
 for a runnable 2-minute walkthrough.
+
+<p align="center">
+  <img src="docs/screenshots/login.jpg" width="49%" alt="Login screen" />
+  <img src="docs/screenshots/course-progress.jpg" width="49%" alt="Course page with lesson progress" />
+</p>
 
 ---
 
@@ -68,6 +78,32 @@ for a runnable 2-minute walkthrough.
 - Kafka publishing is fire-and-forget with error logging (`EventPublisher.kt`); a
   transactional outbox is deliberately deferred — see
   [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full trade-offs discussion.
+
+---
+
+## What's next 🚧
+
+M1–M5 shipped the full polyglot stack end to end; the current work is
+deepening what it actually teaches. In planning/early implementation, not
+yet live:
+
+- **Structured lesson content** — replacing flat-text lessons with real
+  chapters: vocabulary lists, multiple grammar points with examples, a
+  dialogue, and a culture note per lesson, closer to an actual textbook
+  chapter than a paragraph.
+- **New exercise types** — translation and sentence-ordering, alongside the
+  existing multiple-choice and fill-in-the-blank.
+- **AI conversation practice** — a chat page to converse with an LLM tutor
+  in Japanese and get corrections, reusing `ai-exercise-svc`'s existing
+  Gemini → Groq → OpenRouter failover chain for a new, free-form purpose.
+- **Vocabulary flashcards with spaced repetition** — a daily review queue
+  across everything you've learned so far.
+- **Audio pronunciation** — text-to-speech for vocabulary and example
+  sentences.
+
+Tracked as OpenSpec changes under `openspec/changes/` as each one is
+proposed and built — see `docs/ROADMAP.md`'s decision log for the running
+history of what's shipped versus what's still ahead.
 
 ---
 
@@ -135,17 +171,23 @@ Postgres or Docker.
 | **M4 — Async side effects** ✅ | Go event-worker: Kafka consumer group, streaks + leaderboard, read API proxied through the gateway. |
 | **M5 — Polish** ✅ | Cross-service OTel tracing, Grafana Cloud dashboards, admin role for content CRUD, architecture/decisions doc. |
 
+The original 5-milestone roadmap is complete. Current work (see **What's
+next** above) is a second phase deepening the actual learning content and
+interactivity, tracked milestone-free as individual OpenSpec changes rather
+than a fixed set of numbered milestones.
+
 ---
 
 ## CI/CD
 
 Each service has its own GitHub Actions workflow triggered only when its
-directory changes:
+directory changes, all pushing a multi-arch (amd64+arm64) image to GHCR on
+`main`:
 
-- `.github/workflows/core-api.yml` — lint (ktlint), test, build jar; multi-arch
-  (amd64+arm64) Docker image pushed to GHCR on `main`.
-- `.github/workflows/frontend.yml` — lint (oxlint), build; multi-arch nginx
-  image pushed to GHCR on `main`.
+- `.github/workflows/core-api.yml` — lint (ktlint), test, build jar.
+- `.github/workflows/frontend.yml` — lint (oxlint), build.
+- `.github/workflows/ai-exercise-svc.yml` — lint (ruff), test (pytest).
+- `.github/workflows/event-worker.yml` — `go vet`, `go test`.
 
 Deploys are a `kubectl rollout restart` away — see the
 [k8s runbook](infra/k8s/README.md) for the full deploy/rollback procedure.
