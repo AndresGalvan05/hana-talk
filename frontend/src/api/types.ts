@@ -69,7 +69,7 @@ export interface CourseProgress {
   completedLessonIds: string[]
 }
 
-export type ExerciseType = 'MCQ' | 'FILL_IN_BLANK'
+export type ExerciseType = 'MCQ' | 'FILL_IN_BLANK' | 'TRANSLATION' | 'SENTENCE_ORDERING'
 
 export interface Exercise {
   id: string

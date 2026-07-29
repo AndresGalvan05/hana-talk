@@ -92,6 +92,8 @@ class ExerciseService(
         when (exercise.type) {
             ExerciseType.MCQ -> answer == exercise.correctAnswer
             ExerciseType.FILL_IN_BLANK -> answer.trim().lowercase() == exercise.correctAnswer.trim().lowercase()
+            ExerciseType.TRANSLATION -> answer.trim().lowercase() == exercise.correctAnswer.trim().lowercase()
+            ExerciseType.SENTENCE_ORDERING -> answer.trim() == exercise.correctAnswer.trim()
         }
 
     private fun parseOptions(exercise: Exercise): List<String>? =

@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, model_validator
 class ExerciseType(str, Enum):
     MCQ = "MCQ"
     FILL_IN_BLANK = "FILL_IN_BLANK"
+    TRANSLATION = "TRANSLATION"
+    SENTENCE_ORDERING = "SENTENCE_ORDERING"
 
 
 class GrammarPointInput(BaseModel):
@@ -35,8 +37,15 @@ class GeneratedExercise(BaseModel):
                 raise ValueError("MCQ exercises must have non-empty options")
             if self.correct_answer not in self.options:
                 raise ValueError("MCQ correct_answer must be one of options")
+        elif self.type == ExerciseType.SENTENCE_ORDERING:
+            if not self.options:
+                raise ValueError("SENTENCE_ORDERING exercises must have non-empty options")
+            if sorted(self.options) != sorted(self.correct_answer.split()):
+                raise ValueError(
+                    "SENTENCE_ORDERING correct_answer must use exactly the tokens in options",
+                )
         elif self.options:
-            raise ValueError("FILL_IN_BLANK exercises must not have options")
+            raise ValueError(f"{self.type} exercises must not have options")
         return self
 
 

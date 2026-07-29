@@ -24,6 +24,46 @@ def test_fill_in_blank_with_options_is_rejected():
         )
 
 
+def test_translation_with_options_is_rejected():
+    with pytest.raises(ValidationError):
+        GeneratedExercise(
+            type=ExerciseType.TRANSLATION,
+            prompt="p",
+            options=["A"],
+            correct_answer="Watashi wa gakusei desu",
+        )
+
+
+def test_sentence_ordering_with_empty_options_is_rejected():
+    with pytest.raises(ValidationError):
+        GeneratedExercise(
+            type=ExerciseType.SENTENCE_ORDERING,
+            prompt="p",
+            options=[],
+            correct_answer="わたしは がくせい です",
+        )
+
+
+def test_sentence_ordering_correct_answer_must_use_exactly_the_option_tokens():
+    with pytest.raises(ValidationError):
+        GeneratedExercise(
+            type=ExerciseType.SENTENCE_ORDERING,
+            prompt="p",
+            options=["です", "がくせい", "わたしは"],
+            correct_answer="わたしは がくせい だ",
+        )
+
+
+def test_sentence_ordering_accepts_tokens_in_any_option_order():
+    exercise = GeneratedExercise(
+        type=ExerciseType.SENTENCE_ORDERING,
+        prompt="p",
+        options=["です", "がくせい", "わたしは"],
+        correct_answer="わたしは がくせい です",
+    )
+    assert exercise.correct_answer == "わたしは がくせい です"
+
+
 def test_generation_result_requires_both_exercise_types():
     mcq = GeneratedExercise(
         type=ExerciseType.MCQ,

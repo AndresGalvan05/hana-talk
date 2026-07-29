@@ -59,7 +59,7 @@ for a runnable 2-minute walkthrough.
 
 | Service | Stack | Status |
 |---|---|---|
-| [core-api](core-api/) | Kotlin + Spring Boot + PostgreSQL | **Working.** JWT auth, courses/lessons, JLPT progress tracking, Kafka publishing, Prometheus metrics + OTel tracing, Flyway V1–V11 (10-lesson N5 course seeded, Genki-referenced), controller tests, CI |
+| [core-api](core-api/) | Kotlin + Spring Boot + PostgreSQL | **Working.** JWT auth, courses/lessons, JLPT progress tracking, Kafka publishing, Prometheus metrics + OTel tracing, Flyway V1–V12 (5-chapter N5 course seeded, structured content, Genki-referenced), 4 exercise types (MCQ/fill-in-blank/translation/sentence-ordering), controller tests, CI |
 | [frontend](frontend/) | React + TypeScript (Vite) | **Working.** Auth, course browsing, lessons, progress, LLM-generated practice exercises; nginx production image |
 | [ai-exercise-svc](ai-exercise-svc/) | Python + FastAPI + MongoDB | **Working.** Gemini → Groq → OpenRouter provider failover chain, Mongo cache per lesson; called synchronously by core-api |
 | [event-worker](event-worker/) | Go + Kafka consumer | **Working.** Consumes `user.registered`/`exercise.completed`, day-granularity streaks + leaderboard, proxied through core-api |
@@ -83,16 +83,17 @@ for a runnable 2-minute walkthrough.
 
 ## What's next 🚧
 
-M1–M5 shipped the full polyglot stack end to end; the current work is
-deepening what it actually teaches. In planning/early implementation, not
-yet live:
+M1–M5 shipped the full polyglot stack end to end; current work is deepening
+what it actually teaches and how you interact with it, one slice at a time.
 
-- **Structured lesson content** — replacing flat-text lessons with real
-  chapters: vocabulary lists, multiple grammar points with examples, a
-  dialogue, and a culture note per lesson, closer to an actual textbook
-  chapter than a paragraph.
-- **New exercise types** — translation and sentence-ordering, alongside the
-  existing multiple-choice and fill-in-the-blank.
+**Shipped so far:**
+- **Structured lesson content** — real chapters (vocabulary lists, multiple
+  grammar points with examples, a dialogue, a culture note per lesson)
+  instead of flat-text paragraphs.
+- **New exercise types** — translation and sentence-ordering (click-to-order
+  UI), alongside the existing multiple-choice and fill-in-the-blank.
+
+**Still ahead:**
 - **AI conversation practice** — a chat page to converse with an LLM tutor
   in Japanese and get corrections, reusing `ai-exercise-svc`'s existing
   Gemini → Groq → OpenRouter failover chain for a new, free-form purpose.

@@ -3,7 +3,50 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
-## 2026-07-29 — Structured lesson content: 10 shallow lessons → 5 real chapters
+## 2026-07-29 — New exercise types: translation and sentence-ordering
+
+**Shipped**
+- OpenSpec change `new-exercise-types` — second slice of the post-roadmap
+  content/interactivity plan. Every exercise since M3 had been MCQ or
+  fill-in-the-blank; `TRANSLATION` and `SENTENCE_ORDERING` are new, added
+  independently to both `ExerciseType.kt` (core-api) and `app/schemas.py`
+  (ai-exercise-svc) — the two services still share no schema, a known,
+  accepted duplication since M3.
+- `ExerciseService.grade()` (a single exhaustive `when`, no `else` — the
+  compiler forces handling every case) gained two branches: `TRANSLATION`
+  grades identically to `FILL_IN_BLANK` (trim + lowercase); `SENTENCE_ORDERING`
+  grades as an exact match after trim, case-sensitive, since word order and
+  exact tokens both matter for that type.
+- No new database column: `SENTENCE_ORDERING` reuses `Exercise.optionsJson`
+  for the shuffled word tokens and `correctAnswer` for the correctly-ordered
+  tokens space-joined — the same two generic fields every other exercise
+  type already uses, not a new column just for one type.
+- `ai-exercise-svc`'s prompt now asks for a mix of all four types across a
+  batch, with format instructions for each. Deliberately did **not** make
+  the new types a hard validator requirement (still just ≥1 MCQ, ≥1
+  FILL_IN_BLANK, ≥4 total) — a hard 4-type floor risked making generation
+  fail more often on weaker fallback providers for lessons with few grammar
+  points. Verified live: a real generation call for a 7-point lesson still
+  produced a genuine mix (4 MCQ / 3 fill-in-blank / 3 translation / 2
+  sentence-ordering, 12 exercises total) purely from prompt guidance, no
+  hard requirement needed.
+- Frontend: `TRANSLATION` needed zero new code — it already falls into the
+  existing no-`options` text-input branch `FILL_IN_BLANK` uses.
+  `SENTENCE_ORDERING` got a new `SentenceOrderingInput` component: click a
+  shuffled token to append it, click a picked token to send it back —
+  handles repeated tokens (e.g. です appearing twice in a sentence) by
+  removing one matching occurrence per pick rather than filtering by value,
+  which would have removed all copies at once.
+
+**Errors & lessons**
+- *A real bug caught by my own browser-testing mistake, not hidden by it*:
+  live-verifying the sentence-ordering UI, I submitted after picking only 6
+  of 7 tokens (clicked one too few before hitting Submit) — the exercise
+  correctly graded it "not quite," which is exactly the right behavior for
+  an incomplete answer. Worth noting only because it's a clean example of
+  the grading logic doing its job under a genuine (if accidental) edge
+  case, not a rehearsed happy path.
+
 
 **Shipped**
 - OpenSpec change `structured-lesson-content` — the response to the user

@@ -13,17 +13,29 @@ in order:
 
 {grammar_points}
 
-Write one exercise (either multiple-choice or fill-in-the-blank) testing
-each grammar point above -- write two exercises, of different types, for
-any point that covers more than one distinct rule. Across the whole batch,
-include at least one multiple-choice exercise and at least one
-fill-in-the-blank exercise.
+Write one exercise testing each grammar point above -- write two exercises,
+of different types, for any point that covers more than one distinct rule.
+Across the whole batch, use a mix of all four exercise types below rather
+than defaulting to just multiple-choice and fill-in-the-blank -- include at
+least one multiple-choice exercise and at least one fill-in-the-blank
+exercise, and prefer translation or sentence-ordering for grammar points
+where word order or full-sentence construction is the point being tested.
 
 For a multiple-choice exercise, provide 3-4 plausible options, exactly one
 of which is correct, and set correct_answer to that option's exact text.
 
 For a fill-in-the-blank exercise, do not provide options; correct_answer
 is the single expected word or short phrase.
+
+For a translation exercise, the prompt asks the learner to translate an
+English sentence into Japanese; do not provide options; correct_answer is
+the expected Japanese sentence.
+
+For a sentence-ordering exercise, the prompt gives the English meaning of a
+sentence and asks the learner to arrange the Japanese words in the correct
+order; options is a JSON array of that sentence's words/particles in
+shuffled order; correct_answer is those exact same words, in the correct
+order, joined by single spaces.
 """
 
 

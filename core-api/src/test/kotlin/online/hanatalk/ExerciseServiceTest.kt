@@ -76,6 +76,19 @@ class ExerciseServiceTest {
     private fun fillInBlankExercise(id: UUID = UUID.randomUUID()) =
         Exercise(id = id, lessonId = lessonId, type = ExerciseType.FILL_IN_BLANK, prompt = "p", correctAnswer = "Sumimasen")
 
+    private fun translationExercise(id: UUID = UUID.randomUUID()) =
+        Exercise(id = id, lessonId = lessonId, type = ExerciseType.TRANSLATION, prompt = "p", correctAnswer = "Watashi wa gakusei desu")
+
+    private fun sentenceOrderingExercise(id: UUID = UUID.randomUUID()) =
+        Exercise(
+            id = id,
+            lessonId = lessonId,
+            type = ExerciseType.SENTENCE_ORDERING,
+            prompt = "p",
+            optionsJson = """["です","がくせい","わたしは"]""",
+            correctAnswer = "わたしは がくせい です",
+        )
+
     @Test
     fun `correct MCQ attempt marks the lesson complete via EXERCISE source`() {
         val exercise = mcqExercise()
@@ -98,6 +111,39 @@ class ExerciseServiceTest {
         val result = service.submitAttempt(userId, exercise.id, "  sumimasen  ")
 
         assertTrue(result.correct)
+    }
+
+    @Test
+    fun `correct translation attempt ignores case and surrounding whitespace`() {
+        val exercise = translationExercise()
+        given(exerciseRepository.findById(exercise.id)).willReturn(Optional.of(exercise))
+        given(lessonRepository.findById(lessonId)).willReturn(Optional.of(lesson))
+
+        val result = service.submitAttempt(userId, exercise.id, "  WATASHI wa gakusei DESU  ")
+
+        assertTrue(result.correct)
+    }
+
+    @Test
+    fun `correct sentence-ordering attempt marks the lesson complete`() {
+        val exercise = sentenceOrderingExercise()
+        given(exerciseRepository.findById(exercise.id)).willReturn(Optional.of(exercise))
+        given(lessonRepository.findById(lessonId)).willReturn(Optional.of(lesson))
+
+        val result = service.submitAttempt(userId, exercise.id, "わたしは がくせい です")
+
+        assertTrue(result.correct)
+        verify(progressService).markComplete(userId, lessonId, courseId, CompletionSource.EXERCISE)
+    }
+
+    @Test
+    fun `sentence-ordering attempt with correct tokens in the wrong order is incorrect`() {
+        val exercise = sentenceOrderingExercise()
+        given(exerciseRepository.findById(exercise.id)).willReturn(Optional.of(exercise))
+
+        val result = service.submitAttempt(userId, exercise.id, "がくせい わたしは です")
+
+        assertFalse(result.correct)
     }
 
     @Test
