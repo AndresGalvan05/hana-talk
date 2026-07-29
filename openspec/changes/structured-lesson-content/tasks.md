@@ -111,12 +111,19 @@
 
 ## 6. Production rollout
 
-- [ ] 6.1 (User-executed) Deploy the normal way — merge to `main`, CI
-      builds core-api and ai-exercise-svc images, `kubectl rollout restart`
-      both deployments (Flyway runs `V12` automatically on core-api
-      startup)
-- [ ] 6.2 (User-executed) Spot-check the live site: 5 structured lessons
-      render correctly, exercise generation works on a fresh lesson
+- [x] 6.1 Pushed to `main` (`5ac9733`); CI built core-api, ai-exercise-svc,
+      *and* frontend images (frontend code changed too — `LessonPage.tsx`
+      and the four new components — not just the two services originally
+      scoped here); `kubectl rollout restart` on all three. Flyway log
+      confirmed "Migrating schema public to version 12" against the real
+      production database
+- [x] 6.2 Confirmed live: `GET /api/courses/.../lessons` returns 5
+      structured lessons (7-8 grammar points each) on hanatalk.online;
+      vocabulary endpoint returns 14 items for lesson 1. Checked real
+      account progress post-migration: all four test/demo accounts reset
+      to 0 completions, exactly as `design.md` accepted (cascading FK
+      delete from replacing the old lesson rows, no real end users to lose
+      data)
 
 ## 7. Docs
 
