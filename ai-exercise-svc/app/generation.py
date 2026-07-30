@@ -1,5 +1,9 @@
+import json
+
+from pydantic import ValidationError
+
 from app.providers import call_gemini, call_groq, call_openrouter
-from app.schemas import GenerationResult, GrammarPointInput
+from app.schemas import GeneratedExercise, GenerationResult, GrammarPointInput
 
 
 class GenerationFailedError(Exception):
@@ -34,14 +38,32 @@ the expected Japanese sentence.
 For a sentence-ordering exercise, the prompt gives the English meaning of a
 sentence and asks the learner to arrange the Japanese words in the correct
 order; options is a JSON array of that sentence's words/particles in
-shuffled order; correct_answer is those exact same words, in the correct
-order, joined by single spaces.
+shuffled order; correct_answer is those exact same option strings, verbatim
+and in the same script (never romanized, translated, or reworded), in the
+correct order, joined by single spaces.
 """
 
 
 def _format_grammar_points(grammar_points: list[GrammarPointInput]) -> str:
     lines = (f"{i}. {p.title} -- {p.explanation}" for i, p in enumerate(grammar_points, start=1))
     return "\n".join(lines)
+
+
+def _parse_result(raw: str) -> GenerationResult:
+    # Individually schema-valid exercises are kept even when a sibling
+    # exercise in the same batch is malformed (e.g. a sentence-ordering
+    # correct_answer that doesn't match its options' tokens) -- discarding
+    # the whole batch over one bad item forces a fall-through to the next
+    # provider for no reason, and if every provider makes the same mistake
+    # the request fails outright with nothing generated.
+    data = json.loads(raw)
+    valid_exercises = []
+    for item in data.get("exercises", []):
+        try:
+            valid_exercises.append(GeneratedExercise.model_validate(item))
+        except ValidationError:
+            continue
+    return GenerationResult(exercises=valid_exercises)
 
 
 def generate_exercises(
@@ -61,7 +83,7 @@ def generate_exercises(
     for call_provider in (call_gemini, call_groq, call_openrouter):
         try:
             raw = call_provider(prompt, schema)
-            return GenerationResult.model_validate_json(raw)
+            return _parse_result(raw)
         except Exception as exc:  # noqa: BLE001 - intentional: any failure, transport or schema, falls through to the next provider
             last_error = exc
             continue
