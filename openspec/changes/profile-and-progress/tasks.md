@@ -69,12 +69,16 @@
 
 ## 7. Production rollout
 
-- [ ] 7.1 (User-executed) Deploy — merge to `main`, CI builds the frontend
-      image, `kubectl rollout restart deployment/frontend` (no backend
-      changes, no migration)
-- [ ] 7.2 (User-executed) Spot-check the live site: open `/profile` and
-      `/leaderboard`, confirm real data renders and the level control
-      persists a change
+- [x] 7.1 Deployed — merged to `main`, CI built the frontend image,
+      `kubectl rollout restart deployment/frontend` (SSH tunnel to the
+      cluster had dropped since the last session — re-established per the
+      known gotcha before deploying)
+- [x] 7.2 Spot-checked the live site: registered a fresh account, `/profile`
+      rendered username/level/streak correctly, changing the level to N4
+      and reloading confirmed it persisted (confirmed via
+      `read_network_requests`: `PATCH /api/users/me/level` → 200), and
+      `/leaderboard` rendered real ranked production data (5 real users
+      with existing streaks from prior verification sessions)
 
 ## 8. Docs
 

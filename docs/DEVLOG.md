@@ -47,6 +47,18 @@ and root causes — so no lesson has to be relearned.
   tooling quirk, not a product bug (real navigation via `navigate()` and
   coordinate clicks both worked reliably) — noting it in case it recurs
   in future verification sessions.
+- *A false-alarm "level doesn't persist" during production verification*:
+  reading the profile page's state immediately after `navigate()` reloaded
+  it showed the level reverted to N5, which looked like the save hadn't
+  persisted. It had — `ProfilePage`'s `selectedLevel` state initializes to
+  `'N5'` and only updates once its own `GET /api/users/me` fetch resolves,
+  so reading page state before that async fetch completes always shows
+  the default, regardless of what's actually stored. Confirmed real
+  persistence by waiting ~2s after navigating before reading state, and
+  independently via `read_network_requests` showing the `PATCH` returning
+  200. A reminder to wait for a page's own data-fetch to settle before
+  treating its rendered state as ground truth, not just wait after the
+  action that changed the data.
 
 ## 2026-07-30 — Architecture planning: CQRS, Kafka scope, and the next slice
 
