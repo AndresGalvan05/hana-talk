@@ -23,29 +23,38 @@ rows before serving the request.
   `ai-exercise-svc`
 
 ### Requirement: Generated exercises are validated against a strict JSON schema
-`ai-exercise-svc` SHALL validate every LLM provider response against a
-schema matching the existing exercise shape (MCQ requires non-empty options
-and a correct answer among them; fill-in-blank requires a correct answer and
-no options) before returning it, and SHALL reject non-conforming responses
-rather than passing them through partially. A schema-validation failure from
-one provider SHALL NOT immediately fail the request — it triggers the next
-provider in the chain (see the provider fallback chain requirement below).
+`ai-exercise-svc` SHALL validate each exercise in a provider's response
+individually against a schema matching the existing exercise shape, and
+SHALL keep only the schema-conforming exercises from that response rather
+than discarding the whole batch over one malformed item. Shape rules per
+type: MCQ requires non-empty options and a correct answer among them;
+fill-in-blank and translation require a correct answer and no options;
+sentence-ordering requires non-empty options (the shuffled word tokens)
+whose token set, split from the correct answer by spaces, exactly matches
+the options' token set. The surviving exercises from a provider's response
+must still meet the minimum batch size and type-variety floor (at least 4
+exercises, including at least one MCQ and one fill-in-blank); if they
+don't, that provider's attempt counts as a failure and the next provider in
+the chain is tried.
 
-#### Scenario: Provider returns a schema-conforming response
-- **WHEN** a provider returns a response matching the expected shape for
-  the requested exercise type
-- **THEN** `ai-exercise-svc` returns it to core-api as validated exercises,
-  without attempting any further provider
+#### Scenario: Provider returns a fully schema-conforming response
+- **WHEN** a provider returns a response where every exercise matches the
+  expected shape for its type
+- **THEN** `ai-exercise-svc` returns all of them to core-api as validated
+  exercises, without attempting any further provider
 
-#### Scenario: A provider returns a malformed response
-- **WHEN** a provider returns a response that fails schema validation
-  (missing fields, wrong types, empty options for MCQ, etc.)
-- **THEN** `ai-exercise-svc` does not persist or return that response, and
-  instead attempts the next provider in the chain
+#### Scenario: A provider returns one malformed exercise among otherwise-valid ones
+- **WHEN** a provider's response contains one exercise that fails schema
+  validation (e.g. a sentence-ordering correct answer using different words
+  than its options) alongside other exercises that pass validation, and the
+  surviving exercises still meet the minimum-variety bar
+- **THEN** `ai-exercise-svc` drops only the malformed exercise and returns
+  the valid ones, without attempting any further provider
 
 #### Scenario: Every provider in the chain fails
-- **WHEN** all providers in the chain fail (via transport error or schema
-  validation) for the same generation request
+- **WHEN** every provider's response fails outright (transport error) or
+  leaves too few valid exercises to meet the minimum-variety bar, for the
+  same generation request
 - **THEN** `ai-exercise-svc` responds with an error status and core-api
   does not persist any `Exercise` rows for that request
 
