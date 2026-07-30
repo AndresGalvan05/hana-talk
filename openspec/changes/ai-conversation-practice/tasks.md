@@ -138,11 +138,16 @@
 
 ## 6. Production rollout
 
-- [ ] 6.1 Deploy — merge to `main`, CI builds `ai-exercise-svc`, core-api,
-      and frontend images; `kubectl rollout restart` all three (no
-      migration needed — no new database state in any service)
-- [ ] 6.2 Spot-check the live site: hold a short conversation on `/chat`,
-      confirm a correction appears for a deliberate mistake
+- [x] 6.1 Deployed — merged to `main`, CI built `ai-exercise-svc`,
+      core-api, and frontend images; `kubectl rollout restart` all three
+      (SSH tunnel had dropped again since the last session — re-
+      established per the known gotcha before deploying;
+      `ai-exercise-svc`'s `rollout status` timed out but `get pods`
+      confirmed it actually succeeded, matching the documented gotcha)
+- [x] 6.2 Spot-checked the live site: registered a fresh account, sent
+      「わたしは がくせい あります。」 on `/chat`, got a real reply with an
+      accurate correction ("use です instead of あります...") rendered in
+      the distinct correction box
 
 ## 7. Docs
 
