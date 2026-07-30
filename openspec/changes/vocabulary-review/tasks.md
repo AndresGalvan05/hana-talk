@@ -95,11 +95,20 @@
 
 ## 7. Production rollout
 
-- [ ] 7.1 Deploy — merge to `main`, CI builds core-api and frontend
-      images, `kubectl rollout restart` both (Flyway migrates
-      automatically on core-api startup, same as every prior migration)
-- [ ] 7.2 Spot-check the live site: open `/flashcards` on an account with
-      at least one completed lesson, review a card, confirm it's recorded
+- [x] 7.1 Deployed — merged to `main`, CI built core-api and frontend
+      images, `kubectl rollout restart` both. `V13` migrated
+      automatically on core-api startup (confirmed in pod logs:
+      "Migrating schema... to version 13"). The image pull for the new
+      core-api pod was unusually slow (~9 minutes, `ContainerCreating` →
+      `Running` → ready) — no error events, node had no memory/disk/PID
+      pressure, just a slow GHCR pull on the free-tier VM; waited it out
+      rather than intervening
+- [x] 7.2 Spot-checked the live site: registered/used an account,
+      completed a lesson to get real vocabulary due, opened
+      `/flashcards`, revealed and marked a card correct — confirmed via
+      a direct query against the production database
+      (`interval_days=1, correct_streak=1`), not just the UI, since a
+      screenshot timed out at exactly that moment
 
 ## 8. Docs
 
