@@ -3,6 +3,44 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — Architecture planning: CQRS, Kafka scope, and the next slice
+
+**No code shipped this entry — planning + docs only.**
+
+User raised a former colleague's suggestion to adopt CQRS + event sourcing
+(from a library he'd built at UKG), and separately flagged that Kafka felt
+underused ("only for the leaderboard and streak reads... isn't that
+superficial?") and asked where the leaderboard actually was, since it
+wasn't visible in the frontend. Also flagged two UX gaps found while
+clicking around: no next/previous lesson navigation, and no user
+settings/profile page.
+
+Had an Explore agent audit the actual state before answering (didn't want
+to guess): confirmed `GET /api/leaderboard` and `GET /api/users/me/streak`
+are both fully implemented and deployed, but **called from nowhere in the
+frontend** — zero routes, zero components. `PATCH /api/users/me/level`
+is the same story. So the "is Kafka superficial" instinct was right, but
+the actual cause wasn't thin plumbing — the two-topic
+(`user.registered`/`exercise.completed`) event-worker setup is solid,
+idempotent, well-tested — it's that nothing built on top of it ever
+shipped a UI.
+
+On the CQRS+ES question: concluded the useful half (lean, purpose-built
+read models instead of loading a full aggregate for a query) is already in
+production via `event-worker`'s streak/leaderboard tables, and declined
+full event sourcing as disproportionate to this domain. Full reasoning now
+lives in `docs/ARCHITECTURE.md` §6 (new section) rather than here.
+
+**Decided:** propose a new slice, `profile-and-progress` (streak badge,
+leaderboard page, JLPT-level setting), ahead of the already-planned slice 3
+(AI conversation practice) — cheap, and converts already-deployed backend
+work into something demoable rather than adding new build scope. The
+lesson prev/next + index gap is small enough to fix directly later,
+doesn't need a proposal. An achievement/milestone system (events reacting
+to other events, not just flat projection) was discussed as a possible
+future slice, lower priority. Full decision recorded in `docs/ROADMAP.md`'s
+2026-07-30 entry.
+
 ## 2026-07-30 — Production incident: `new-exercise-types` rollout verification
 
 **What happened**

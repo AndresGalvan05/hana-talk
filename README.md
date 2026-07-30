@@ -94,6 +94,9 @@ what it actually teaches and how you interact with it, one slice at a time.
   UI), alongside the existing multiple-choice and fill-in-the-blank.
 
 **Still ahead:**
+- **Profile & progress page** — the streak and leaderboard backend
+  (`event-worker`, Kafka-driven) has been live since M4 with no frontend
+  surface at all; this slice ships that UI plus a JLPT-level setting.
 - **AI conversation practice** — a chat page to converse with an LLM tutor
   in Japanese and get corrections, reusing `ai-exercise-svc`'s existing
   Gemini → Groq → OpenRouter failover chain for a new, free-form purpose.

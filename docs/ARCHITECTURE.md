@@ -146,7 +146,40 @@ live by hard-killing the `event-worker` container mid-flow (`docker kill`,
 2026-07-20) and confirming no duplicate state after it rejoined the
 consumer group.
 
-## 6. Security model
+## 6. CQRS via Kafka-fed read models, not event sourcing
+
+core-api's Postgres tables (`users`, `courses`, `lessons`, `exercises`,
+`user_lesson_progress`) are the single source of truth on the write side —
+every mutation goes through the domain model and JPA, no exceptions.
+`event-worker`'s tables (`event_worker.users`, `daily_activity`,
+`user_streaks`) are pure read models: never written to by a user request
+directly, only ever derived by folding `user.registered` and
+`exercise.completed` events (§5). Answering "what's my streak" or "who's on
+the leaderboard" never touches core-api's `users`/`user_lesson_progress`
+tables at all — no join across a growing completion history, no risk of
+pulling an entire user's progress graph into memory just to rank twenty
+streaks. That's CQRS's actual payoff — separate, purpose-built models for
+reads vs. writes — already achieved here without a shared schema and
+without making events the system of record for anything.
+
+**What this is not: event sourcing.** The two Kafka topics aren't a ledger
+core-api ever replays to reconstruct its own state — `users`/`lessons`/
+`user_lesson_progress` are ordinary rows, read and written directly, exactly
+as they would be without Kafka in the picture at all. Going further —
+making core-api's own state event-sourced, deriving "current state" by
+replaying an event log instead of storing it — was raised (a former
+colleague's suggestion, based on a CQRS+ES library he'd worked on) and
+explicitly declined: it would mean permanent event-schema compatibility for
+the life of the project, snapshotting once replay gets slow, and giving up
+ad-hoc SQL against "current state" in favor of hand-building a projection
+for every query shape. Real costs, with no offsetting benefit here — nothing
+in this domain (course progress, exercise history) needs a temporal/audit
+query ("what was true at time X"), and read/write shapes don't diverge
+enough to justify it. The useful half of "CQRS + event sourcing" is already
+in production (§5's read models); the expensive half was a deliberate no,
+not an oversight.
+
+## 7. Security model
 
 Course/lesson mutation (`POST`/`PUT`/`DELETE`) requires an `ADMIN` role — a
 real gap that existed from M1 (2026-07-14) until M5 (2026-07-21): those
@@ -174,7 +207,7 @@ operates the database — the same trust boundary already used for
 directly on the cluster, never through a checked-in bootstrap script or
 admin-invite endpoint.
 
-## 7. Observability
+## 8. Observability
 
 Metrics and traces export **directly from each service to Grafana Cloud's
 OTLP endpoint** — no Grafana Agent/Alloy, no self-hosted Collector,
@@ -203,7 +236,7 @@ real endpoints, not by reading docs once and trusting them:
   instrumentation the way there is for HTTP, so `event-worker` extracts
   `traceparent`/`tracestate` from Kafka message headers by hand.
 
-## 8. What I'd do differently at scale
+## 9. What I'd do differently at scale
 
 Not a hedge — these are the specific cuts this project already made
 explicitly, each with a real trigger that would justify revisiting it:
