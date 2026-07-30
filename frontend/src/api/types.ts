@@ -100,3 +100,14 @@ export interface LeaderboardEntry {
   username: string
   currentStreak: number
 }
+
+export interface ChatMessage {
+  speaker: 'user' | 'tutor'
+  japanese: string
+}
+
+export interface ChatReply {
+  japanese: string
+  english: string
+  correction: string | null
+}

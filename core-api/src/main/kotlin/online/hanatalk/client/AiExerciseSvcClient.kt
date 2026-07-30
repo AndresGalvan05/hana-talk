@@ -52,4 +52,22 @@ class AiExerciseSvcClient(
         } catch (e: RestClientException) {
             throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc call failed", e)
         }
+
+    fun getChatReply(
+        jlptLevel: String,
+        history: List<ChatMessageDto>,
+        message: String,
+    ): ChatReplyDto =
+        try {
+            restClient
+                .post()
+                .uri("/chat")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ChatRequestDto(jlptLevel, history, message))
+                .retrieve()
+                .body(ChatReplyDto::class.java)
+                ?: throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc returned an empty response")
+        } catch (e: RestClientException) {
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc call failed", e)
+        }
 }

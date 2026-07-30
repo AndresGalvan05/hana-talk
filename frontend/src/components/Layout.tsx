@@ -11,6 +11,7 @@ export function Layout() {
           🌸 HanaTalk
         </Link>
         <nav>
+          <Link to="/chat">Chat practice</Link>
           <Link to="/profile" className="nav-user">
             {username}
           </Link>

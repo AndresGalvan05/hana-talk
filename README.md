@@ -95,11 +95,12 @@ what it actually teaches and how you interact with it, one slice at a time.
 - **Profile & progress page** — a `/profile` page (JLPT level, current
   streak) and a `/leaderboard` page, surfacing `event-worker`'s
   Kafka-driven streak/leaderboard data (live since M4) for the first time.
+- **AI conversation practice** — a `/chat` page to converse with an LLM
+  tutor in Japanese and get corrections, reusing `ai-exercise-svc`'s
+  existing Gemini → Groq → OpenRouter failover chain for a new,
+  free-form purpose alongside exercise generation.
 
 **Still ahead:**
-- **AI conversation practice** — a chat page to converse with an LLM tutor
-  in Japanese and get corrections, reusing `ai-exercise-svc`'s existing
-  Gemini → Groq → OpenRouter failover chain for a new, free-form purpose.
 - **Vocabulary flashcards with spaced repetition** — a daily review queue
   across everything you've learned so far.
 - **Audio pronunciation** — text-to-speech for vocabulary and example
@@ -125,6 +126,7 @@ history of what's shipped versus what's still ahead.
 | `GET /api/lessons/{id}/exercises` | JWT | LLM-generated (or seeded) exercises, no answers |
 | `POST /api/exercises/{id}/attempts` | JWT | Grade an attempt (publishes `exercise.completed`) |
 | `GET /api/users/me/streak`, `GET /api/leaderboard` | JWT | Day-granularity streak & leaderboard (proxied to `event-worker`) |
+| `POST /api/conversation/reply` | JWT | LLM tutor chat reply (proxied to `ai-exercise-svc`, level derived from profile) |
 
 ---
 

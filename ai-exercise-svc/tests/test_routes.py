@@ -2,9 +2,16 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
+from app.chat import ChatFailedError
 from app.generation import GenerationFailedError
 from app.main import app
-from app.schemas import ExerciseType, GeneratedExercise, GenerationResult, GrammarPointInput
+from app.schemas import (
+    ChatReply,
+    ExerciseType,
+    GeneratedExercise,
+    GenerationResult,
+    GrammarPointInput,
+)
 
 client = TestClient(app)
 
@@ -60,3 +67,26 @@ def test_malformed_provider_response_returns_502_and_does_not_cache():
 
     assert response.status_code == 502
     put_cached.assert_not_called()
+
+
+_CHAT_REQUEST_BODY = {
+    "jlpt_level": "N5",
+    "history": [{"speaker": "tutor", "japanese": "こんにちは！"}],
+    "message": "こんにちは。",
+}
+
+
+def test_chat_success_returns_reply():
+    reply = ChatReply(japanese="げんきですか。", english="Are you doing well?")
+    with patch("app.routes.get_chat_reply", return_value=reply):
+        response = client.post("/chat", json=_CHAT_REQUEST_BODY)
+
+    assert response.status_code == 200
+    assert response.json()["japanese"] == "げんきですか。"
+
+
+def test_chat_failure_returns_502():
+    with patch("app.routes.get_chat_reply", side_effect=ChatFailedError("all providers failed")):
+        response = client.post("/chat", json=_CHAT_REQUEST_BODY)
+
+    assert response.status_code == 502

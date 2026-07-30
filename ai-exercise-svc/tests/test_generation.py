@@ -25,9 +25,9 @@ _SCHEMA_INVALID_JSON = (
 
 def test_gemini_succeeds_groq_and_openrouter_are_never_called():
     with (
-        patch("app.generation.call_gemini", return_value=_VALID_RESULT_JSON) as gemini,
-        patch("app.generation.call_groq") as groq,
-        patch("app.generation.call_openrouter") as openrouter,
+        patch("app.llm_fallback.call_gemini", return_value=_VALID_RESULT_JSON) as gemini,
+        patch("app.llm_fallback.call_groq") as groq,
+        patch("app.llm_fallback.call_openrouter") as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 
@@ -39,9 +39,9 @@ def test_gemini_succeeds_groq_and_openrouter_are_never_called():
 
 def test_gemini_fails_groq_succeeds_openrouter_is_never_called():
     with (
-        patch("app.generation.call_gemini", side_effect=RuntimeError("gemini down")),
-        patch("app.generation.call_groq", return_value=_VALID_RESULT_JSON) as groq,
-        patch("app.generation.call_openrouter") as openrouter,
+        patch("app.llm_fallback.call_gemini", side_effect=RuntimeError("gemini down")),
+        patch("app.llm_fallback.call_groq", return_value=_VALID_RESULT_JSON) as groq,
+        patch("app.llm_fallback.call_openrouter") as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 
@@ -52,9 +52,9 @@ def test_gemini_fails_groq_succeeds_openrouter_is_never_called():
 
 def test_gemini_and_groq_fail_openrouter_succeeds():
     with (
-        patch("app.generation.call_gemini", side_effect=RuntimeError("gemini down")),
-        patch("app.generation.call_groq", side_effect=RuntimeError("groq down")),
-        patch("app.generation.call_openrouter", return_value=_VALID_RESULT_JSON) as openrouter,
+        patch("app.llm_fallback.call_gemini", side_effect=RuntimeError("gemini down")),
+        patch("app.llm_fallback.call_groq", side_effect=RuntimeError("groq down")),
+        patch("app.llm_fallback.call_openrouter", return_value=_VALID_RESULT_JSON) as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 
@@ -64,10 +64,10 @@ def test_gemini_and_groq_fail_openrouter_succeeds():
 
 def test_all_providers_failing_raises_generation_failed_error():
     with (
-        patch("app.generation.call_gemini", side_effect=RuntimeError("gemini down")) as gemini,
-        patch("app.generation.call_groq", side_effect=RuntimeError("groq down")) as groq,
+        patch("app.llm_fallback.call_gemini", side_effect=RuntimeError("gemini down")) as gemini,
+        patch("app.llm_fallback.call_groq", side_effect=RuntimeError("groq down")) as groq,
         patch(
-            "app.generation.call_openrouter",
+            "app.llm_fallback.call_openrouter",
             side_effect=RuntimeError("openrouter down"),
         ) as openrouter,
     ):
@@ -81,9 +81,9 @@ def test_all_providers_failing_raises_generation_failed_error():
 
 def test_schema_invalid_response_falls_through_like_a_transport_error():
     with (
-        patch("app.generation.call_gemini", return_value=_SCHEMA_INVALID_JSON),
-        patch("app.generation.call_groq", return_value=_VALID_RESULT_JSON) as groq,
-        patch("app.generation.call_openrouter") as openrouter,
+        patch("app.llm_fallback.call_gemini", return_value=_SCHEMA_INVALID_JSON),
+        patch("app.llm_fallback.call_groq", return_value=_VALID_RESULT_JSON) as groq,
+        patch("app.llm_fallback.call_openrouter") as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 
@@ -108,9 +108,9 @@ def test_one_malformed_exercise_is_dropped_not_the_whole_batch():
         "]}"
     )
     with (
-        patch("app.generation.call_gemini", return_value=raw) as gemini,
-        patch("app.generation.call_groq") as groq,
-        patch("app.generation.call_openrouter") as openrouter,
+        patch("app.llm_fallback.call_gemini", return_value=raw) as gemini,
+        patch("app.llm_fallback.call_groq") as groq,
+        patch("app.llm_fallback.call_openrouter") as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 
@@ -133,9 +133,9 @@ def test_batch_left_below_minimum_after_dropping_bad_items_falls_through():
         "]}"
     )
     with (
-        patch("app.generation.call_gemini", return_value=raw),
-        patch("app.generation.call_groq", return_value=_VALID_RESULT_JSON) as groq,
-        patch("app.generation.call_openrouter") as openrouter,
+        patch("app.llm_fallback.call_gemini", return_value=raw),
+        patch("app.llm_fallback.call_groq", return_value=_VALID_RESULT_JSON) as groq,
+        patch("app.llm_fallback.call_openrouter") as openrouter,
     ):
         result = generate_exercises(_GRAMMAR_POINTS, "N5")
 

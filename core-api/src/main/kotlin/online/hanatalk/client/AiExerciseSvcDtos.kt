@@ -24,3 +24,20 @@ data class GeneratedExerciseDto(
 data class GenerationResultDto(
     val exercises: List<GeneratedExerciseDto>,
 )
+
+data class ChatMessageDto(
+    val speaker: String,
+    val japanese: String,
+)
+
+data class ChatRequestDto(
+    @JsonProperty("jlpt_level") val jlptLevel: String,
+    val history: List<ChatMessageDto>,
+    val message: String,
+)
+
+data class ChatReplyDto(
+    val japanese: String,
+    val english: String,
+    val correction: String?,
+)

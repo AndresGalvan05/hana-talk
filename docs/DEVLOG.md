@@ -3,6 +3,68 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — `ai-conversation-practice`: slice 3, free-form chat with an LLM tutor
+
+**Shipped**
+- OpenSpec change `ai-conversation-practice` — slice 3 of the
+  post-roadmap deepening-interactivity plan, and the first practice
+  surface in the app that isn't a closed-form exercise type. A learner
+  converses in Japanese with an LLM tutor on a new `/chat` page and gets
+  a correction when they make a real mistake.
+- `ai-exercise-svc`'s three-provider fallback loop (Gemini → Groq →
+  OpenRouter) was extracted from `generate_exercises` into a shared
+  `app/llm_fallback.py::call_with_fallback(prompt, schema, parse)` —
+  the `parse` callback preserves the exact existing behavior where a
+  schema-invalid response (not just a transport error) still counts as
+  that provider failing and falls through, verified by re-running all of
+  `test_generation.py` unchanged (its behavior, not the loop, is what the
+  tests actually assert) after retargeting the `patch()` calls to the new
+  module. New `app/chat.py` reuses the same helper for a new purpose.
+- The chat reply schema (`japanese`/`english`/`correction`) deliberately
+  mirrors `LessonContent.Dialogue`'s `DialogueLine` shape rather than
+  inventing something new.
+- core-api: no new client bean — `getChatReply` was added to the
+  existing `AiExerciseSvcClient` (both `/generate` and `/chat` target the
+  same downstream service; a second client would just duplicate the
+  `RestClient.Builder`/timeout wiring). New `ConversationController`
+  derives the JLPT level server-side from `user.startingLevel ?? N5`
+  rather than trusting the client — reusing the same field the
+  `profile-and-progress` slice made editable.
+- Frontend: new `ChatPage.tsx`. A `pending: string | null` state (rather
+  than optimistically appending to the transcript and rolling back on
+  failure) holds the in-flight message as a distinct "sending…" bubble;
+  the user turn and tutor reply only commit to the transcript together,
+  on success. On failure, the typed message is restored to the input for
+  a no-retyping retry.
+- No persistence anywhere — conversation history lives only in
+  `ChatPage`'s React state for the page's lifetime, per the original
+  slice plan.
+
+**Errors & lessons**
+- *The JLPT-level prompt only worked as a ceiling, not a real scale.*
+  "Keep your Japanese at or below {jlpt_level}" does nothing useful for
+  N1 (the top of the scale) — there's no "below" to constrain toward, so
+  the model defaulted to simple, all-hiragana replies regardless of
+  level. A first fix (framing it as matching the level in both
+  directions) wasn't strong enough either. What actually worked: concrete
+  worked examples of what each level's output should look like inline in
+  the prompt (see `_PROMPT_TEMPLATE` in `app/chat.py`) — after that, an
+  N1-level conversation used genuinely adult vocabulary (複雑, 円安,
+  物価高騰) instead of hiragana-only phrasing for the same question. Same
+  lesson as `new-exercise-types`' exercise-type-diversity prompt: LLM
+  instruction-following for style/register is probabilistic, not
+  guaranteed, and vague ceiling framing is weaker than concrete examples.
+- *A UI/automation false alarm almost hid the above finding.* The first
+  attempt to set the test account's JLPT level to N1 via `/profile`
+  silently didn't persist — confirmed the bug was in the click, not the
+  product, by checking `SELECT starting_level FROM users` directly and
+  finding it still null after the "successful" click. Redid it, confirmed
+  N1 actually landed in the database this time, and only then was the
+  prompt-quality comparison actually valid. Worth remembering: a browser-
+  automation action reporting success doesn't mean the underlying app
+  state changed — check the actual data when a test result seems to
+  contradict what the code should do.
+
 ## 2026-07-30 — Lesson prev/next navigation + jump-to-lesson index
 
 Small, direct fix (no OpenSpec proposal — flagged earlier as a UI gap not

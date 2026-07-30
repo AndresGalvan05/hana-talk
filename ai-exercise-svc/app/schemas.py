@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -65,3 +66,24 @@ class GenerationResult(BaseModel):
                 "generation result must include at least one MCQ and one FILL_IN_BLANK exercise",
             )
         return self
+
+
+class ChatMessage(BaseModel):
+    speaker: Literal["user", "tutor"]
+    japanese: str = Field(min_length=1)
+
+
+class ChatRequest(BaseModel):
+    jlpt_level: str
+    history: list[ChatMessage]
+    message: str = Field(min_length=1)
+
+
+class ChatReply(BaseModel):
+    japanese: str = Field(min_length=1, description="The tutor's reply, in Japanese.")
+    english: str = Field(min_length=1, description="English translation of the reply.")
+    correction: str | None = Field(
+        default=None,
+        description="A brief correction of the learner's last message, if it contained a "
+        "Japanese-language mistake; omitted or null otherwise.",
+    )

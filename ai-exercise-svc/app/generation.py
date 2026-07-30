@@ -2,7 +2,7 @@ import json
 
 from pydantic import ValidationError
 
-from app.providers import call_gemini, call_groq, call_openrouter
+from app.llm_fallback import AllProvidersFailedError, call_with_fallback
 from app.schemas import GeneratedExercise, GenerationResult, GrammarPointInput
 
 
@@ -73,19 +73,7 @@ def generate_exercises(
     formatted_points = _format_grammar_points(grammar_points)
     prompt = _PROMPT_TEMPLATE.format(jlpt_level=jlpt_level, grammar_points=formatted_points)
     schema = GenerationResult.model_json_schema()
-    last_error: Exception | None = None
-
-    # Providers are named here (not a module-level list) so each name is
-    # re-resolved from this module's globals on every call — that's what
-    # lets tests patch app.generation.call_gemini/call_groq/call_openrouter
-    # and actually affect the chain, instead of patching a stale reference
-    # captured once at import time.
-    for call_provider in (call_gemini, call_groq, call_openrouter):
-        try:
-            raw = call_provider(prompt, schema)
-            return _parse_result(raw)
-        except Exception as exc:  # noqa: BLE001 - intentional: any failure, transport or schema, falls through to the next provider
-            last_error = exc
-            continue
-
-    raise GenerationFailedError(str(last_error)) from last_error
+    try:
+        return call_with_fallback(prompt, schema, _parse_result)
+    except AllProvidersFailedError as exc:
+        raise GenerationFailedError(str(exc)) from exc

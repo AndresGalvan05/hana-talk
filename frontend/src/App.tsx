@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAuth } from './components/RequireAuth'
+import { ChatPage } from './pages/ChatPage'
 import { CourseDetailPage } from './pages/CourseDetailPage'
 import { CoursesPage } from './pages/CoursesPage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/chat" element={<ChatPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
