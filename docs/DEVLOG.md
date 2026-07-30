@@ -3,6 +3,68 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — Production incident: `new-exercise-types` rollout verification
+
+**What happened**
+
+Verifying `new-exercise-types` in production (task 5.2) uncovered a chain of
+three separate, real bugs — not one:
+
+1. **Stale MongoDB cache from UUID reuse.** Both `V11` and `V12` reused the
+   same lesson UUIDs across full content replacements, but `ai-exercise-svc`'s
+   `generated_exercises` Mongo cache is keyed only by `lesson_id`, with no
+   content-based invalidation. It kept serving exercises generated against
+   old, now-deleted lesson content. Cleared via a throwaway pod
+   (`kubectl run --rm -it --image=mongo:8 ... mongosh ... --eval
+   "db.generated_exercises.deleteMany({})"`) connecting to the `mongo`
+   Service over the network — **not** an interactive `mongosh` session inside
+   `mongo-0` itself, which is discussed below.
+2. **Stale Postgres rows masking the Mongo fix.** `ExerciseService.listByLesson`
+   checks `exerciseRepository.findByLessonId` *first* and returns immediately
+   if any rows exist — it never even reaches the Mongo cache once exercises
+   are persisted. An earlier verification request had hit the stale Mongo
+   cache and gotten those results permanently written to Postgres, so
+   clearing Mongo alone did nothing; the Postgres rows for lesson 1 also had
+   to be deleted by hand before a fresh generation could happen at all.
+3. **The real bug: one malformed exercise failed the whole batch.**
+   `SENTENCE_ORDERING`'s prompt didn't force the LLM to keep `correct_answer`
+   in the same tokenization/script as `options` (it sometimes romanized
+   `correct_answer` while `options` stayed in kana/kanji). `GenerationResult`
+   validated the whole batch as a single Pydantic model, so one malformed
+   item invalidated *everything*, forcing a fall-through to the next
+   provider. When all three providers made the same mistake, the request
+   died after ~90s (core-api's `AI_EXERCISE_SVC_TIMEOUT_SECONDS` default)
+   with zero exercises generated — surfacing to users as a 502. Fixed by
+   validating exercises individually in `generate_exercises` (parse raw
+   JSON, keep only the schema-valid items, then run the batch-level minimum-
+   variety check against the survivors) instead of failing the entire
+   response over one bad item. Also tightened the prompt's sentence-ordering
+   instructions to say `correct_answer` must reuse `options`' strings
+   verbatim. Verified live afterward: lesson 1 returned 7 exercises in 32s
+   with a genuine mix of all four types.
+
+**Lesson for later slices:** the lesson-UUID-reuse-across-content-replacement
+pattern (used by both `V11` and `V12`) is a latent trap for any future
+per-lesson cache keyed only by ID — worth a content hash or version field in
+the cache key if this recurs (e.g. for Slice 4's spaced-repetition tables).
+
+**Errors & lessons**
+- *Never run an interactive process inside `mongo-0`'s own container.* Its
+  resources are deliberately capped tight (`limits: memory: 512Mi`,
+  `--wiredTigerCacheSizeGB=0.25`, see `infra/k8s/mongo/mongo.yaml`). Running
+  `mongosh` interactively via `kubectl exec -it mongo-0 -- mongosh` puts the
+  Node.js mongosh process in the *same* cgroup as `mongod` itself — it pushed
+  memory over the limit and OOM-killed the whole container (confirmed via
+  `RESTARTS: 1` and readiness/liveness-probe-failed events in `kubectl
+  describe pod mongo-0`). Recovered cleanly on its own (data safe on the
+  PVC), but the fix is to always use a separate throwaway pod for one-off
+  Mongo commands, never `mongo-0` itself.
+- *A `kubectl run ... -- mongosh ... --eval "..."` command pasted across two
+  lines in fish silently split into two commands* (no trailing backslash),
+  producing a confusing pair of errors (`connection refused` from the first
+  truncated command, `Unknown command: --restart=Never` from the second).
+  Always paste multi-flag `kubectl` one-liners as a single unbroken line.
+
 ## 2026-07-29 — New exercise types: translation and sentence-ordering
 
 **Shipped**

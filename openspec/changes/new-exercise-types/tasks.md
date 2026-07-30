@@ -68,13 +68,17 @@
 
 ## 5. Production rollout
 
-- [ ] 5.1 (User-executed) Deploy — merge to `main`, CI builds core-api,
-      ai-exercise-svc, and frontend images, `kubectl rollout restart` all
-      three (no migration needed — `exercises.type` is already
-      `VARCHAR(20)`)
-- [ ] 5.2 (User-executed) Spot-check the live site: request exercises for
-      an untouched lesson, confirm new exercise types appear and grade
-      correctly
+- [x] 5.1 Deploy — merge to `main`, CI built core-api, ai-exercise-svc, and
+      frontend images, `kubectl rollout restart` all three (no migration
+      needed — `exercises.type` is already `VARCHAR(20)`)
+- [x] 5.2 Spot-check the live site: requesting exercises for lesson 1
+      surfaced a chain of three bugs (stale Mongo cache from lesson-UUID
+      reuse across `V11`/`V12`, stale Postgres rows masking the Mongo fix,
+      and a real generation bug — one malformed `SENTENCE_ORDERING` exercise
+      invalidated the whole batch, exhausting all 3 LLM providers and
+      failing after ~90s). All three fixed and verified live: lesson 1 now
+      returns a genuine mix of all four exercise types in ~32s. Full
+      writeup in `docs/DEVLOG.md`'s 2026-07-30 entry
 
 ## 6. Docs
 
