@@ -278,6 +278,33 @@ label {
 }
 
 /* Lesson page */
+.lesson-nav-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.lesson-row-current {
+  border-color: var(--accent);
+}
+
+.lesson-prev-next {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.2rem 0;
+}
+
+.lesson-nav-link {
+  color: var(--text);
+}
+
+.lesson-nav-next {
+  text-align: right;
+  grid-column: 2;
+}
+
 .lesson-content {
   padding: 1.5rem;
 }

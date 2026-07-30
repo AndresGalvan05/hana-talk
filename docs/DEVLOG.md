@@ -3,6 +3,23 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — Lesson prev/next navigation + jump-to-lesson index
+
+Small, direct fix (no OpenSpec proposal — flagged earlier as a UI gap not
+worth full ceremony for). `LessonPage` only ever had a "back to course"
+link; getting to the next lesson meant navigating all the way back to the
+course page. `LessonPage` now also fetches the course's lesson list
+(already available, same endpoint `CourseDetailPage` uses) to compute the
+current lesson's position among its siblings: a prev/next card pair at the
+bottom of the lesson content (only rendering whichever side exists — first
+lesson shows just "Next", last shows just "Prev"), and a "Jump to lesson"
+toggle in the header that expands the same `.lesson-list`/`.lesson-row`
+markup `CourseDetailPage` already uses (including completion checkmarks),
+so the two pages look consistent for free. Verified live: navigating
+prev/next lands on the correct sibling lesson, the index highlights the
+current lesson and shows real completion state, and the edge cases (first
+lesson has no prev card, last has no next card) both render correctly.
+
 ## 2026-07-30 — `profile-and-progress`: shipping the streak/leaderboard UI
 
 **Shipped**
