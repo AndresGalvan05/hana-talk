@@ -3,6 +3,51 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — `profile-and-progress`: shipping the streak/leaderboard UI
+
+**Shipped**
+- OpenSpec change `profile-and-progress` — pure frontend work, no backend
+  changes: every endpoint it needed (`GET /api/users/me`,
+  `PATCH /api/users/me/level`, `GET /api/users/me/streak`,
+  `GET /api/leaderboard`) already existed and was already deployed, just
+  never had a UI. New `ProfilePage` (username, JLPT level with an editable
+  `<select>` + Save, current streak) and `LeaderboardPage` (ranked list,
+  the signed-in user's own row visually distinguished by matching
+  `username` — the only identity the frontend already holds client-side
+  via `useAuth()`, no `userId` round trip needed). Header username is now
+  a link to `/profile`.
+- Discovered mid-implementation that the tasks.md draft assumed named API
+  wrapper functions in `client.ts` (`getProfile`, `setLevel`, etc.) —
+  checked first and found every existing page calls `api.get`/`api.patch`
+  directly inline, no wrapper functions exist anywhere in the codebase.
+  Followed the actual convention instead of introducing a new one.
+
+**Errors & lessons**
+- *Local `event-worker` Kafka consumer got stuck rebalancing.* Verifying
+  the "highlight my own row" behavior needed real streak data, so I
+  registered a user and completed a lesson. `core-api` published both
+  `user.registered` and `exercise.completed` correctly (confirmed via
+  `kafka-console-consumer` reading the raw topic), but
+  `kafka-consumer-groups.sh --describe --group event-worker` reported
+  "rebalancing" indefinitely and zero committed offsets — a restart of
+  the `event-worker` container didn't fix it either. This is a
+  pre-existing local-environment quirk (this session's `docker compose up`
+  had never had a working event-worker consumer before this point),
+  unrelated to this change's code — production's event-worker has
+  consumed correctly in every prior session's verification. Worked
+  around it for verification purposes only by seeding a row directly in
+  `event_worker.user_streaks` (local dev Postgres, not production) to
+  confirm the frontend rendering itself was correct. Not investigated
+  further — out of scope for a frontend-only change; worth a fresh look
+  if it recurs.
+- *Browser-automation `ref`-based clicks on React Router `<Link>` elements
+  intermittently didn't trigger navigation*, while the exact same click
+  by pixel coordinate worked every time, and `ref`-based clicks on
+  `<button>` elements worked fine. Concluded this is a browser-automation
+  tooling quirk, not a product bug (real navigation via `navigate()` and
+  coordinate clicks both worked reliably) — noting it in case it recurs
+  in future verification sessions.
+
 ## 2026-07-30 — Architecture planning: CQRS, Kafka scope, and the next slice
 
 **No code shipped this entry — planning + docs only.**

@@ -11,7 +11,9 @@ export function Layout() {
           🌸 HanaTalk
         </Link>
         <nav>
-          <span className="nav-user">{username}</span>
+          <Link to="/profile" className="nav-user">
+            {username}
+          </Link>
           <button type="button" className="link-button" onClick={logout}>
             Log out
           </button>

@@ -36,7 +36,9 @@ library, no global data store. See `proposal.md` for why this work exists.
 - **"Is this me?" on the leaderboard is matched by username, not
   `userId`.** The frontend never learns the authenticated user's id today
   — `AuthContext`/`tokenStore` only ever stored a username since login
-  (`frontend/src/api/client.ts`'s `USERNAME_KEY`). Registration enforces
+  (`frontend/src/api/client.ts`'s `USERNAME_KEY`), exposed to components
+  via `useAuth().username` exactly as `Layout.tsx` already consumes it.
+  Registration enforces
   unique usernames (`RegisterRequest`'s `@Size(min=3,max=30)` plus a DB
   uniqueness constraint), so comparing `LeaderboardEntryDto.username`
   against the already-available `tokenStore.getUsername()` is sufficient

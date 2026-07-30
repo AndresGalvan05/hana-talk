@@ -88,3 +88,15 @@ export interface UserProfile {
   nativeLanguage: string
   startingLevel: JlptLevel | null
 }
+
+export interface Streak {
+  userId: string
+  currentStreak: number
+  lastActiveDate: string | null
+}
+
+export interface LeaderboardEntry {
+  userId: string
+  username: string
+  currentStreak: number
+}
