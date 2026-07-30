@@ -99,10 +99,11 @@ what it actually teaches and how you interact with it, one slice at a time.
   tutor in Japanese and get corrections, reusing `ai-exercise-svc`'s
   existing Gemini → Groq → OpenRouter failover chain for a new,
   free-form purpose alongside exercise generation.
+- **Vocabulary flashcards with spaced repetition** — a `/flashcards` page
+  with Leitner-style scheduling (correct doubles the interval, incorrect
+  resets it), reviewing vocabulary from lessons you've actually completed.
 
 **Still ahead:**
-- **Vocabulary flashcards with spaced repetition** — a daily review queue
-  across everything you've learned so far.
 - **Audio pronunciation** — text-to-speech for vocabulary and example
   sentences.
 
@@ -127,6 +128,7 @@ history of what's shipped versus what's still ahead.
 | `POST /api/exercises/{id}/attempts` | JWT | Grade an attempt (publishes `exercise.completed`) |
 | `GET /api/users/me/streak`, `GET /api/leaderboard` | JWT | Day-granularity streak & leaderboard (proxied to `event-worker`) |
 | `POST /api/conversation/reply` | JWT | LLM tutor chat reply (proxied to `ai-exercise-svc`, level derived from profile) |
+| `GET /api/vocabulary/review`, `POST /api/vocabulary-items/{id}/review` | JWT | Spaced-repetition due queue and review submission |
 
 ---
 

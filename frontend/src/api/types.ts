@@ -111,3 +111,9 @@ export interface ChatReply {
   english: string
   correction: string | null
 }
+
+export interface VocabularyReviewResult {
+  nextReviewAt: string
+  intervalDays: number
+  correctStreak: number
+}

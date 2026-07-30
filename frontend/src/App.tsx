@@ -4,6 +4,7 @@ import { RequireAuth } from './components/RequireAuth'
 import { ChatPage } from './pages/ChatPage'
 import { CourseDetailPage } from './pages/CourseDetailPage'
 import { CoursesPage } from './pages/CoursesPage'
+import { FlashcardsPage } from './pages/FlashcardsPage'
 import { LeaderboardPage } from './pages/LeaderboardPage'
 import { LessonPage } from './pages/LessonPage'
 import { LoginPage } from './pages/LoginPage'
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/flashcards" element={<FlashcardsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

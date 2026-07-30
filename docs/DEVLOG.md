@@ -3,6 +3,52 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — `vocabulary-review`: slice 4, Leitner-style flashcards
+
+**Shipped**
+- OpenSpec change `vocabulary-review` — slice 4 of the deepening-
+  interactivity plan. A `/flashcards` page reviews vocabulary from
+  lessons the user has actually completed, on a schedule that adapts to
+  whether they got it right: correct doubles the interval (capped at 90
+  days), incorrect resets it to 1 day. This is the payoff for the
+  decision made back in `structured-lesson-content` to keep
+  `vocabulary_items` a real table instead of JSON — this slice needed
+  zero schema changes to that table, only a new one alongside it.
+- New `user_vocabulary_progress` table (`V13`), composite-keyed
+  (`user_id`, `vocabulary_item_id`) mirroring `user_lesson_progress`'s
+  `UserLessonProgressId` pattern — but the first genuinely *mutable*
+  per-user table in the codebase; every other one (`user_lesson_progress`,
+  `exercise_attempts`) is an append-only log.
+- The due-queue query is plain Kotlin composition (completed lesson IDs →
+  their vocabulary → filter by due-or-never-reviewed), not a hand-written
+  JPQL join — matches the codebase's existing preference for simple
+  derived queries over query-string logic.
+- New `VocabularyReviewController` (separate from the existing, public,
+  lesson-scoped `VocabularyController` — different resource shape and
+  auth story, not worth conflating).
+- Frontend: `FlashcardsPage.tsx` shows one card at a time, Japanese-only
+  until revealed, then correct/incorrect buttons that submit and advance
+  locally without a refetch. An explicit "nothing due" state instead of
+  a blank card area when the queue is empty or exhausted.
+
+**Errors & lessons**
+- *A mockito-kotlin `any()` pitfall*: `whenever(repo.save(any()))` without
+  a type parameter didn't match `save`'s generic `<S extends T> S
+  save(S)` signature, so the stub silently never applied — every review
+  in the service test threw a Kotlin null-check `NullPointerException`
+  ("save(...) must not be null") on the real (un-stubbed, therefore
+  null-returning) mock. Fixed with an explicit `any<UserVocabularyProgress>()`,
+  matching the working precedent already in `ExerciseServiceTest`
+  (`any<List<Exercise>>()` for `saveAll`) — worth remembering as a
+  recurring Kotlin/Mockito interaction, not a one-off mistake.
+- *Verified the scheduling math against the database directly*, not just
+  the UI, continuing the practice established during
+  `ai-conversation-practice`'s JLPT-level debugging: after marking one
+  card correct and one incorrect, `SELECT ... FROM user_vocabulary_progress`
+  confirmed exactly the expected `interval_days`/`correct_streak` pairs
+  for each, rather than trusting that the UI advancing to the next card
+  meant the write had actually happened correctly.
+
 ## 2026-07-30 — `ai-conversation-practice`: slice 3, free-form chat with an LLM tutor
 
 **Shipped**

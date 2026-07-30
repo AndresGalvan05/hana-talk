@@ -7,4 +7,6 @@ import java.util.UUID
 @Repository
 interface VocabularyItemRepository : JpaRepository<VocabularyItem, UUID> {
     fun findByLessonIdOrderByPosition(lessonId: UUID): List<VocabularyItem>
+
+    fun findByLessonIdIn(lessonIds: List<UUID>): List<VocabularyItem>
 }

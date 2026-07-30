@@ -620,3 +620,40 @@ label {
 .chat-input-row input {
   margin-top: 0;
 }
+
+/* Flashcards */
+.flashcard {
+  max-width: 420px;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.flashcard-japanese {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.flashcard-reading {
+  margin: 0 0 0.3rem;
+}
+
+.flashcard-meaning {
+  margin: 0 0 1.2rem;
+  font-size: 1.1rem;
+}
+
+.flashcard-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.flashcard-incorrect {
+  background: var(--error);
+}
+
+.flashcard-incorrect:hover:not(:disabled) {
+  background: #8f1f19;
+}
