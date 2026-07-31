@@ -52,11 +52,23 @@
 
 ## 5. Production rollout
 
-- [ ] 5.1 Deploy — merge to `main`, CI builds the frontend image,
-      `kubectl rollout restart deployment/frontend` (no backend changes,
-      no migration)
-- [ ] 5.2 Spot-check the live site: click a speaker button on the
-      vocabulary table and on a flashcard, confirm both play
+- [x] 5.1 Deployed — merged to `main`, CI built the frontend image,
+      `kubectl rollout restart deployment/frontend` (SSH tunnel had
+      dropped again since the last session — re-established per the
+      known gotcha before deploying; this rollout completed cleanly,
+      unlike the slow image pull seen in the previous slice)
+- [x] 5.2 Spot-checked the live site: registered a fresh account,
+      confirmed speaker buttons render correctly on the vocabulary
+      table, grammar examples, and (after completing a lesson) the
+      flashcard page, all with correct `aria-label`s. Confirmed via
+      console that the production (minified) bundle throws no errors on
+      click. Actual audible playback remains unverified through this
+      browser-automation tool specifically — it reports zero TTS voices
+      in both the local dev environment and here against production
+      (`speechSynthesis.getVoices().length === 0` in both), which is a
+      property of the automation tool's Chrome instance, not something
+      that differs between local and prod. Recommend a manual check in
+      a normal desktop browser to actually hear it.
 
 ## 6. Docs
 
