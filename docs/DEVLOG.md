@@ -3,6 +3,45 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-30 — `audio-pronunciation`: slice 5, the last slice
+
+**Shipped**
+- OpenSpec change `audio-pronunciation` — slice 5, completing all five
+  slices of the deepening-interactivity plan first laid out in
+  `structured-lesson-content`'s proposal. A 🔊 speaker button next to
+  every vocabulary row, grammar-point example sentence, and the current
+  flashcard, reading the Japanese text aloud via the browser's built-in
+  `speechSynthesis` API (`lang: 'ja-JP'`, `rate: 0.85`). Entirely
+  client-side — no backend, no new dependency, no database change; the
+  cheapest slice by design, sequenced last specifically because it had
+  nothing to attach to before the vocabulary table (`structured-lesson-
+  content`) and flashcard page (`vocabulary-review`) existed.
+- One shared `speak()`/`isSpeechSupported()` utility
+  (`frontend/src/lib/speech.ts`) and one `SpeakButton.tsx` component,
+  reused in all three places rather than three separate implementations.
+  `speak()` always calls `speechSynthesis.cancel()` before `speak()`, so
+  rapid clicking switches to the newest text instead of queuing stale
+  audio behind it.
+
+**Errors & lessons**
+- *This dev sandbox has zero TTS voices installed* —
+  `speechSynthesis.getVoices().length === 0` even though
+  `'speechSynthesis' in window` is `true`. Verified the implementation is
+  correct at the API level anyway: calling `speechSynthesis.speak()`
+  directly with the same `lang`/`rate` throws no exception and the
+  utterance carries the right values, and monkey-patching
+  `speechSynthesis.cancel` to count calls confirmed the cancel-then-speak
+  behavior fires exactly once per click. What couldn't be verified in
+  this environment — actual audible output — is a genuine environment
+  gap (no OS-level TTS engine), not a code defect; worth listening for
+  real audio during the production spot-check on a normal browser/OS
+  instead.
+
+**Roadmap note:** this closes out the original five-slice plan
+(`structured-lesson-content`, `new-exercise-types`, `ai-conversation-
+practice`, `vocabulary-review`, `audio-pronunciation`), plus the
+interleaved `profile-and-progress` slice that wasn't in the original plan.
+
 ## 2026-07-30 — `vocabulary-review`: slice 4, Leitner-style flashcards
 
 **Shipped**

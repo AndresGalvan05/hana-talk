@@ -81,12 +81,12 @@ for a runnable 2-minute walkthrough.
 
 ---
 
-## What's next 🚧
+## Deepening the content ✅
 
-M1–M5 shipped the full polyglot stack end to end; current work is deepening
-what it actually teaches and how you interact with it, one slice at a time.
+M1–M5 shipped the full polyglot stack end to end; a second, milestone-free
+phase then deepened what the app actually teaches and how you interact
+with it, one slice at a time. That phase is now complete:
 
-**Shipped so far:**
 - **Structured lesson content** — real chapters (vocabulary lists, multiple
   grammar points with examples, a dialogue, a culture note per lesson)
   instead of flat-text paragraphs.
@@ -102,14 +102,15 @@ what it actually teaches and how you interact with it, one slice at a time.
 - **Vocabulary flashcards with spaced repetition** — a `/flashcards` page
   with Leitner-style scheduling (correct doubles the interval, incorrect
   resets it), reviewing vocabulary from lessons you've actually completed.
+- **Audio pronunciation** — a 🔊 button on vocabulary, grammar examples,
+  and flashcards, using the browser's built-in speech synthesis — no
+  backend, no new dependency.
 
-**Still ahead:**
-- **Audio pronunciation** — text-to-speech for vocabulary and example
-  sentences.
-
-Tracked as OpenSpec changes under `openspec/changes/` as each one is
-proposed and built — see `docs/ROADMAP.md`'s decision log for the running
-history of what's shipped versus what's still ahead.
+Tracked as OpenSpec changes under `openspec/changes/` as each one was
+proposed and built — see `docs/ROADMAP.md`'s decision log for the full
+history. Future work isn't scoped yet; ideas raised along the way (an
+achievement/milestone system reacting to streaks, for one) are noted there
+rather than committed to.
 
 ---
 
@@ -179,10 +180,10 @@ Postgres or Docker.
 | **M4 — Async side effects** ✅ | Go event-worker: Kafka consumer group, streaks + leaderboard, read API proxied through the gateway. |
 | **M5 — Polish** ✅ | Cross-service OTel tracing, Grafana Cloud dashboards, admin role for content CRUD, architecture/decisions doc. |
 
-The original 5-milestone roadmap is complete. Current work (see **What's
-next** above) is a second phase deepening the actual learning content and
-interactivity, tracked milestone-free as individual OpenSpec changes rather
-than a fixed set of numbered milestones.
+The original 5-milestone roadmap is complete. A second phase (see
+**Deepening the content** above) then deepened the actual learning content
+and interactivity, tracked milestone-free as individual OpenSpec changes
+rather than a fixed set of numbered milestones — that phase is complete too.
 
 ---
 

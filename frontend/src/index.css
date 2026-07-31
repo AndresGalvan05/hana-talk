@@ -657,3 +657,20 @@ label {
 .flashcard-incorrect:hover:not(:disabled) {
   background: #8f1f19;
 }
+
+/* Audio pronunciation */
+.speak-button {
+  background: none;
+  color: var(--muted);
+  border: none;
+  padding: 0 0.3rem;
+  margin-left: 0.3rem;
+  font-size: 0.9rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.speak-button:hover:not(:disabled) {
+  background: none;
+  color: var(--accent);
+}

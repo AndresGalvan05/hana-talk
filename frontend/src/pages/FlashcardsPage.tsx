@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { VocabularyItem } from '../api/types'
+import { SpeakButton } from '../components/SpeakButton'
 
 export function FlashcardsPage() {
   const [queue, setQueue] = useState<VocabularyItem[] | null>(null)
@@ -44,7 +45,10 @@ export function FlashcardsPage() {
       )}
       {current && (
         <div className="card flashcard">
-          <p className="flashcard-japanese">{current.japanese}</p>
+          <p className="flashcard-japanese">
+            {current.japanese}
+            <SpeakButton text={current.japanese} />
+          </p>
           {revealed && (
             <>
               <p className="flashcard-reading muted">{current.reading}</p>

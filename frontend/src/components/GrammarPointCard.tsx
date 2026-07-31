@@ -1,4 +1,5 @@
 import type { GrammarPoint } from '../api/types'
+import { SpeakButton } from './SpeakButton'
 
 interface GrammarPointCardProps {
   point: GrammarPoint
@@ -20,6 +21,7 @@ export function GrammarPointCard({ point, index }: GrammarPointCardProps) {
               <span lang="ja" className="example-japanese">
                 {example.japanese}
               </span>
+              <SpeakButton text={example.japanese} />
               <span className="muted example-romaji"> ({example.romaji})</span>
               <span className="example-english"> — {example.english}</span>
             </li>
