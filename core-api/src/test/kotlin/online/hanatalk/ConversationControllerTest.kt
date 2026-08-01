@@ -7,12 +7,15 @@ import online.hanatalk.domain.JlptLevel
 import online.hanatalk.domain.user.User
 import online.hanatalk.domain.user.UserRepository
 import online.hanatalk.security.JwtService
+import online.hanatalk.security.RateLimiter
 import online.hanatalk.security.SecurityConfig
 import online.hanatalk.security.UserDetailsServiceImpl
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.given
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
@@ -43,6 +46,9 @@ class ConversationControllerTest {
     @MockitoBean
     lateinit var userDetailsService: UserDetailsServiceImpl
 
+    @MockitoBean
+    lateinit var rateLimiter: RateLimiter
+
     private val requestBody =
         """{"history":[{"speaker":"tutor","japanese":"こんにちは！"}],"message":"こんにちは。"}"""
 
@@ -61,6 +67,7 @@ class ConversationControllerTest {
     fun `reply derives N5 for a user with no stored level`() {
         val userWithNoLevel = User(email = "taro@example.com", username = "taro", passwordHash = "hash")
         given(userRepository.findByEmail("taro@example.com")).willReturn(userWithNoLevel)
+        given(rateLimiter.tryAcquire(any(), any(), any())).willReturn(true)
         given(aiExerciseSvcClient.getChatReply(eq("N5"), any(), any())).willReturn(sampleReply)
 
         mockMvc.post("/api/conversation/reply") {
@@ -80,6 +87,7 @@ class ConversationControllerTest {
                 startingLevel = JlptLevel.N3
             }
         given(userRepository.findByEmail("taro@example.com")).willReturn(userWithLevel)
+        given(rateLimiter.tryAcquire(any(), any(), any())).willReturn(true)
         given(aiExerciseSvcClient.getChatReply(eq("N3"), any(), any())).willReturn(sampleReply)
 
         mockMvc.post("/api/conversation/reply") {
@@ -93,6 +101,7 @@ class ConversationControllerTest {
     fun `reply propagates a downstream ai-exercise-svc failure as the same status`() {
         val user = User(email = "taro@example.com", username = "taro", passwordHash = "hash")
         given(userRepository.findByEmail("taro@example.com")).willReturn(user)
+        given(rateLimiter.tryAcquire(any(), any(), any())).willReturn(true)
         given(aiExerciseSvcClient.getChatReply(any(), any(), any()))
             .willThrow(ResponseStatusException(HttpStatus.BAD_GATEWAY, "ai-exercise-svc call failed"))
 
@@ -100,6 +109,21 @@ class ConversationControllerTest {
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect { status { isBadGateway() } }
+    }
+
+    @Test
+    @WithMockUser(username = "taro@example.com")
+    fun `reply is rejected with 429 once the rate limit is exceeded, without calling ai-exercise-svc`() {
+        val user = User(email = "taro@example.com", username = "taro", passwordHash = "hash")
+        given(userRepository.findByEmail("taro@example.com")).willReturn(user)
+        given(rateLimiter.tryAcquire(any(), any(), any())).willReturn(false)
+
+        mockMvc.post("/api/conversation/reply") {
+            contentType = MediaType.APPLICATION_JSON
+            content = requestBody
+        }.andExpect { status { isEqualTo(429) } }
+
+        verify(aiExerciseSvcClient, never()).getChatReply(any(), any(), any())
     }
 
     @Test

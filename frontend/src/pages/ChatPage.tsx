@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
 import type { ChatMessage, ChatReply } from '../api/types'
 
 interface Turn extends ChatMessage {
@@ -31,8 +31,12 @@ export function ChatPage() {
         { speaker: 'user', japanese: messageText },
         { speaker: 'tutor', japanese: reply.japanese, english: reply.english, correction: reply.correction },
       ])
-    } catch {
-      setError('Could not get a reply. Try again.')
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.status === 429
+          ? "You're sending messages too fast — wait a moment and try again."
+          : 'Could not get a reply. Try again.',
+      )
       setInput(messageText)
     } finally {
       setPending(null)
