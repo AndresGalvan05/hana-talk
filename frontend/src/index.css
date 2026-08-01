@@ -674,3 +674,29 @@ label {
   background: none;
   color: var(--accent);
 }
+
+/* Achievements */
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+
+.achievement-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.achievement-locked {
+  opacity: 0.5;
+}
+
+.achievement-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.achievement-unlocked-at {
+  margin: 0;
+}

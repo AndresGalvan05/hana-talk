@@ -55,4 +55,16 @@ class EventWorkerClient(
         } catch (e: RestClientException) {
             throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "event-worker call failed", e)
         }
+
+    fun getAchievements(userId: UUID): List<AchievementDto> =
+        try {
+            restClient
+                .get()
+                .uri("/users/{userId}/achievements", userId)
+                .retrieve()
+                .body(object : ParameterizedTypeReference<List<AchievementDto>>() {})
+                ?: emptyList()
+        } catch (e: RestClientException) {
+            throw ResponseStatusException(HttpStatus.BAD_GATEWAY, "event-worker call failed", e)
+        }
 }

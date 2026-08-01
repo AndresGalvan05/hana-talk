@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/store"
 )
@@ -17,12 +18,14 @@ const defaultLeaderboardLimit = 20
 type Store interface {
 	GetStreak(ctx context.Context, userID string) (store.StreakInfo, error)
 	GetLeaderboard(ctx context.Context, limit int) ([]store.LeaderboardEntry, error)
+	GetAchievements(ctx context.Context, userID string) ([]store.AchievementStatus, error)
 }
 
 func NewServer(s Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /leaderboard", leaderboardHandler(s))
 	mux.HandleFunc("GET /users/{userId}/streak", streakHandler(s))
+	mux.HandleFunc("GET /users/{userId}/achievements", achievementsHandler(s))
 	return mux
 }
 
@@ -71,6 +74,41 @@ func leaderboardHandler(s Store) http.HandlerFunc {
 				Username:      e.Username,
 				CurrentStreak: e.CurrentStreak,
 			})
+		}
+		writeJSON(w, resp)
+	}
+}
+
+type achievementResponse struct {
+	Code        string  `json:"code"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Unlocked    bool    `json:"unlocked"`
+	UnlockedAt  *string `json:"unlockedAt"`
+}
+
+func achievementsHandler(s Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("userId")
+		statuses, err := s.GetAchievements(r.Context(), userID)
+		if err != nil {
+			http.Error(w, "failed to load achievements", http.StatusInternalServerError)
+			return
+		}
+
+		resp := make([]achievementResponse, 0, len(statuses))
+		for _, a := range statuses {
+			entry := achievementResponse{
+				Code:        a.Code,
+				Title:       a.Title,
+				Description: a.Description,
+				Unlocked:    a.Unlocked,
+			}
+			if a.UnlockedAt != nil {
+				formatted := a.UnlockedAt.Format(time.RFC3339)
+				entry.UnlockedAt = &formatted
+			}
+			resp = append(resp, entry)
 		}
 		writeJSON(w, resp)
 	}

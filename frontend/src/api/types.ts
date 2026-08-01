@@ -117,3 +117,11 @@ export interface VocabularyReviewResult {
   intervalDays: number
   correctStreak: number
 }
+
+export interface Achievement {
+  code: string
+  title: string
+  description: string
+  unlocked: boolean
+  unlockedAt: string | null
+}

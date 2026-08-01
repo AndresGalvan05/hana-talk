@@ -2,6 +2,7 @@ package online.hanatalk
 
 import online.hanatalk.api.UserProfileController
 import online.hanatalk.api.dto.UserProfileResponse
+import online.hanatalk.client.AchievementDto
 import online.hanatalk.client.EventWorkerClient
 import online.hanatalk.client.StreakResponse
 import online.hanatalk.domain.JlptLevel
@@ -129,5 +130,45 @@ class UserProfileControllerTest {
 
         mockMvc.get("/api/users/me/streak")
             .andExpect { status { isBadGateway() } }
+    }
+
+    @Test
+    fun `get achievements requires auth`() {
+        mockMvc.get("/api/users/me/achievements")
+            .andExpect { status { isUnauthorized() } }
+    }
+
+    @Test
+    @WithMockUser(username = "taro@example.com")
+    fun `get achievements proxies through event-worker`() {
+        given(userRepository.findByEmail("taro@example.com")).willReturn(testUser)
+        given(eventWorkerClient.getAchievements(testUser.id))
+            .willReturn(
+                listOf(
+                    AchievementDto(
+                        code = "STREAK_3",
+                        title = "3-Day Streak",
+                        description = "Practiced three days in a row.",
+                        unlocked = true,
+                        unlockedAt = "2026-07-20T00:00:00Z",
+                    ),
+                    AchievementDto(
+                        code = "STREAK_7",
+                        title = "7-Day Streak",
+                        description = "Practiced seven days in a row.",
+                        unlocked = false,
+                        unlockedAt = null,
+                    ),
+                ),
+            )
+
+        mockMvc.get("/api/users/me/achievements")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$[0].code") { value("STREAK_3") }
+                jsonPath("$[0].unlocked") { value(true) }
+                jsonPath("$[1].code") { value("STREAK_7") }
+                jsonPath("$[1].unlocked") { value(false) }
+            }
     }
 }

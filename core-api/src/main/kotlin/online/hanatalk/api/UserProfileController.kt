@@ -2,6 +2,7 @@ package online.hanatalk.api
 
 import online.hanatalk.api.dto.SetLevelRequest
 import online.hanatalk.api.dto.UserProfileResponse
+import online.hanatalk.client.AchievementDto
 import online.hanatalk.client.EventWorkerClient
 import online.hanatalk.client.StreakResponse
 import online.hanatalk.domain.user.UserRepository
@@ -42,5 +43,15 @@ class UserProfileController(
             userRepository.findByEmail(principal.username)
                 ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")
         return eventWorkerClient.getStreak(user.id)
+    }
+
+    @GetMapping("/me/achievements")
+    fun getAchievements(
+        @AuthenticationPrincipal principal: UserDetails,
+    ): List<AchievementDto> {
+        val user =
+            userRepository.findByEmail(principal.username)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "User not found")
+        return eventWorkerClient.getAchievements(user.id)
     }
 }

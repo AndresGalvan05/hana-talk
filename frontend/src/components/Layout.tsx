@@ -13,6 +13,7 @@ export function Layout() {
         <nav>
           <Link to="/flashcards">Flashcards</Link>
           <Link to="/chat">Chat practice</Link>
+          <Link to="/achievements">Achievements</Link>
           <Link to="/profile" className="nav-user">
             {username}
           </Link>

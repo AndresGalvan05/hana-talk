@@ -128,7 +128,8 @@ func handle(ctx context.Context, topic string, value []byte, s *store.Store) err
 			return fmt.Errorf("parse occurredAt: %w", err)
 		}
 		activityDate := time.Date(occurredAt.Year(), occurredAt.Month(), occurredAt.Day(), 0, 0, 0, 0, time.UTC)
-		return s.RecordActivityAndUpdateStreak(ctx, e.UserID, activityDate)
+		_, err = s.RecordExerciseCompletion(ctx, e.UserID, e.LessonID, activityDate)
+		return err
 
 	default:
 		return fmt.Errorf("unknown topic: %s", topic)

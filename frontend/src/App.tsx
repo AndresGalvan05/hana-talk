@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAuth } from './components/RequireAuth'
+import { AchievementsPage } from './pages/AchievementsPage'
 import { ChatPage } from './pages/ChatPage'
 import { CourseDetailPage } from './pages/CourseDetailPage'
 import { CoursesPage } from './pages/CoursesPage'
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
+          <Route path="/achievements" element={<AchievementsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
