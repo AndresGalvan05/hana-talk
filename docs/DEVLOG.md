@@ -3,6 +3,46 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-07-31 — `chat-rate-limiting`: capping the one unbounded LLM endpoint
+
+**Shipped**
+- OpenSpec change `chat-rate-limiting` — first of the post-roadmap slices
+  (chosen over an achievement system, an admin UI, and extending
+  observability). `/api/conversation/reply` was the one AI-backed
+  endpoint with no cap; exercise generation didn't need one because
+  `ExerciseService.listByLesson` checks Postgres first and short-circuits
+  permanently once a lesson has any `Exercise` rows, capping its lifetime
+  LLM-call surface at the fixed lesson count.
+- New `RateLimiter` component (`core-api/.../security/RateLimiter.kt`):
+  in-memory, per-user, fixed-window counter keyed by `"chat:${user.id}"`,
+  10 requests/minute, synchronized per-key rather than globally. Deliberately
+  not a `Filter`/`HandlerInterceptor` — inline in `ConversationController`,
+  since there's exactly one call site and a generic framework would be
+  over-engineering. No Redis — single replica, in-memory state is fine.
+  Took an injected `Clock` bean (new, added to `HanaTalkApplication`) so
+  the window-elapsed logic is testable without `Thread.sleep`.
+- Frontend (`ChatPage.tsx`): catches a 429 specifically
+  (`err instanceof ApiError && err.status === 429`) and shows "You're
+  sending messages too fast — wait a moment and try again," preserving
+  the typed message in the input either way.
+
+**Errors & lessons**
+- *Sequential curl testing looked like the limiter didn't work* — 11
+  requests fired one after another all returned 200. Root cause: each
+  real chat call takes 6-30+ seconds (genuine LLM latency), so 11
+  sequential requests span well past the 60-second window and it resets
+  naturally before 10 can ever accumulate inside it. Not a bug — a test
+  methodology flaw. Firing 15 requests **concurrently** instead produced
+  exactly 10×200 + 5×429, matching the configured limit precisely. Same
+  concurrent-request pattern re-verified cleanly against production
+  after deploy (10×200 + 1×429 on the 11th).
+- *429 response body has no "message" field* — confirmed this is a
+  pre-existing Spring Boot default (message omitted unless
+  `server.error.include-message=always` is set), not something this
+  change introduced: an unrelated, already-shipped 404 from
+  `VocabularyReviewController` has the identical shape. Harmless here —
+  the frontend keys off `err.status`, not the response body's message.
+
 ## 2026-07-30 — `audio-pronunciation`: slice 5, the last slice
 
 **Shipped**

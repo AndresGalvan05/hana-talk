@@ -128,7 +128,7 @@ rather than committed to.
 | `GET /api/lessons/{id}/exercises` | JWT | LLM-generated (or seeded) exercises, no answers |
 | `POST /api/exercises/{id}/attempts` | JWT | Grade an attempt (publishes `exercise.completed`) |
 | `GET /api/users/me/streak`, `GET /api/leaderboard` | JWT | Day-granularity streak & leaderboard (proxied to `event-worker`) |
-| `POST /api/conversation/reply` | JWT | LLM tutor chat reply (proxied to `ai-exercise-svc`, level derived from profile) |
+| `POST /api/conversation/reply` | JWT | LLM tutor chat reply (proxied to `ai-exercise-svc`, level derived from profile; rate-limited to 10/min/user) |
 | `GET /api/vocabulary/review`, `POST /api/vocabulary-items/{id}/review` | JWT | Spaced-repetition due queue and review submission |
 
 ---

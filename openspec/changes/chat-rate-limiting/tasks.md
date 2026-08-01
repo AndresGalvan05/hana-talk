@@ -66,14 +66,18 @@
 
 ## 6. Production rollout
 
-- [ ] 6.1 Deploy — merge to `main`, CI builds core-api and frontend
-      images, `kubectl rollout restart` both (no migration)
-- [ ] 6.2 Spot-check the live site: confirm normal chat still works;
-      optionally confirm the 429 path if convenient to trigger safely
+- [x] 6.1 Deploy — merge to `main`, CI builds core-api and frontend
+      images, `kubectl rollout restart` both (no migration). Both
+      deployments rolled out successfully.
+- [x] 6.2 Spot-check the live site: confirm normal chat still works;
+      optionally confirm the 429 path if convenient to trigger safely.
+      Verified against production: a normal reply succeeded (200), then
+      11 requests in the same window returned 10x200 + 1x429, matching
+      the configured 10/min limit.
 
 ## 7. Docs
 
-- [ ] 7.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
+- [x] 7.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
       decision log
-- [ ] 7.2 Update root `README.md`'s Core API surface table if the
+- [x] 7.2 Update root `README.md`'s Core API surface table if the
       `POST /api/conversation/reply` row needs a note about the new limit
