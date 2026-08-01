@@ -121,16 +121,23 @@
 
 ## 8. Production rollout
 
-- [ ] 8.1 Deploy — merge to `main`, CI builds event-worker, core-api, and
+- [x] 8.1 Deploy — merge to `main`, CI builds event-worker, core-api, and
       frontend images; `kubectl rollout restart` all three (event-worker
-      migration runs on startup, same as `0001_init` did)
-- [ ] 8.2 Spot-check the live site: complete a lesson (or use an existing
+      migration runs on startup, same as `0001_init` did). All three
+      rolled out successfully; confirmed `lesson_completions` and
+      `user_achievements` tables exist in production Postgres.
+- [x] 8.2 Spot-check the live site: complete a lesson (or use an existing
       test account with real history) and confirm at least one
-      achievement appears unlocked
+      achievement appears unlocked. Verified: registered a fresh
+      production account, completed a lesson via the API, confirmed
+      `LESSONS_1` unlocked immediately (no consumer-group flakiness this
+      time), and confirmed via the actual `/achievements` page in the
+      browser that "First Steps" renders unlocked with a date and the
+      rest render locked.
 
 ## 9. Docs
 
-- [ ] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
+- [x] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
       decision log
-- [ ] 9.2 Update root `README.md`'s Core API surface table with the new
+- [x] 9.2 Update root `README.md`'s Core API surface table with the new
       `GET /api/users/me/achievements` row

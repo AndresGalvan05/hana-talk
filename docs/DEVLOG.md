@@ -3,6 +3,46 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-01 — `achievement-system`: streak and lesson-completion badges
+
+**Shipped**
+- OpenSpec change `achievement-system` — second post-roadmap slice, chosen
+  for being the one with genuine new architectural texture (derived,
+  multi-hop state) versus the other three options (admin UI, extended
+  observability) which are hardening/ops work on existing surfaces.
+- `event-worker` evaluates a fixed catalog of 6 achievements (3/7/30-day
+  streaks, 1/3/5-lesson completions) inline whenever it processes an
+  `exercise.completed` event — no new Kafka topic or consumer, since the
+  streak/completion state it needs already lived there. Evaluation itself
+  is a pure function (`internal/achievements.Evaluate`), mirroring the
+  existing `internal/streak` package's unit-testable shape.
+- New `GET /api/users/me/achievements` (proxied from a new event-worker
+  endpoint) returns the full catalog with locked/unlocked status; new
+  `AchievementsPage` badge grid in the frontend.
+
+**Errors & lessons**
+- *Found while reading `store.go`, before writing any code:* the existing
+  day-granularity `daily_activity` guard (used for streak updates) can't
+  also gate completion counting. If a user completes two different
+  lessons on the same calendar day, the second event hits that guard's
+  early-return branch — so completion counting placed after it would
+  silently drop the second lesson. Fixed by giving completion counting
+  its own idempotency table (`lesson_completions`, keyed on `(user_id,
+  lesson_id)`), independent of the day guard. Verified directly: completed
+  3 lessons in one UTC day and confirmed all 3 were counted (not 1).
+- *Local Kafka consumer-group flakiness recurred* — the same issue
+  `profile-and-progress` hit: a fresh test user's `user.registered` and
+  first `exercise.completed` events sat unconsumed in the local
+  docker-compose stack (event-worker's consumer group appeared stuck).
+  Restarting the `event-worker` container made it rejoin and process the
+  backlog cleanly. Confirmed this is purely a local-dev artifact — the
+  identical flow on production unlocked the achievement immediately with
+  no restart needed.
+- *Kafka redelivery idempotency verified directly*, not just reasoned
+  about: manually re-published a lesson's exact `exercise.completed`
+  payload via `kafka-console-producer` and confirmed no duplicate
+  `lesson_completions` row and no unlock-timestamp change.
+
 ## 2026-07-31 — `chat-rate-limiting`: capping the one unbounded LLM endpoint
 
 **Shipped**
