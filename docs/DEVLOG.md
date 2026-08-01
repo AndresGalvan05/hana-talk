@@ -3,6 +3,66 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-01 — `admin-content-ui`: a real UI for course/lesson authoring
+
+**Shipped**
+- OpenSpec change `admin-content-ui` — third and last of the "close a
+  known gap" slices from the post-roadmap planning session
+  (`chat-rate-limiting`, `achievement-system`, this one), before
+  extended observability. `admin-content-authoring` had shipped a role +
+  full course/lesson CRUD API, but nothing in the frontend ever consumed
+  it — content could only be authored via curl/Postman. This closes that
+  gap.
+- `GET /api/users/me` gains a `role` field (passthrough — `User` was
+  already loaded in full). `AuthContext` fetches it via one follow-up
+  call to `/api/users/me` right after login/register succeeds, and
+  persists it in `localStorage` alongside `token`/`username` so it's
+  available synchronously on every later page load.
+- New `RequireAdmin` route wrapper (mirrors `RequireAuth`, redirects
+  non-admins to `/courses` instead of `/login`); an "Admin" nav link
+  shown only for admins; admin pages for course and lesson list/create/
+  edit/delete, routed at `/admin/courses` and `/admin/courses/:courseId/
+  lessons`.
+- **Scope decision, made before writing any code:** lesson content
+  (grammar points, dialogue, culture note — three levels of nesting) is
+  edited as a single JSON `<textarea>` with client-side `JSON.parse`
+  validation before submit, not a bespoke add/remove/reorder nested-list
+  form builder. A full form-builder for that shape would have been the
+  largest UI surface in the app for content only one person (the admin)
+  ever touches — documented explicitly in the proposal's cut line rather
+  than silently simplified.
+- `api/client.ts` gained `put`/`delete` (only `get`/`post`/`patch`
+  existed before). Delete confirmation is a first-of-its-kind inline
+  Confirm/Cancel swap, not `window.confirm()` — chosen so it stays
+  scriptable/testable via browser automation and styleable to match the
+  rest of the app.
+
+**Errors & lessons**
+- *Recurring browser-automation click-timing flakiness, twice in this
+  session's verification:* (1) granting a test user `ADMIN` via direct
+  SQL and logging in again initially showed the OLD `USER` role in
+  `localStorage` — turned out to be a stale click on "Log out"/"Log in"
+  that hadn't actually completed before subsequent actions ran, not a
+  bug in the new role-persistence code. Confirmed by clearing
+  `localStorage` directly via `javascript_tool` and redoing the login
+  deliberately, which then correctly showed `role: "ADMIN"`. (2) A
+  malformed-JSON test initially showed no effect because a click into
+  the lesson-content textarea raced the page's async content-loading
+  `useEffect`, so the typed text landed then got overwritten. Fixed by
+  waiting for the page to fully settle before interacting — both were
+  test artifacts, not app bugs, confirmed by cross-checking against the
+  actual API response and network tab in each case.
+- Verified the malformed-JSON guard by inspecting network traffic, not
+  just the UI: submitting invalid JSON showed the inline error and the
+  browser's network tab confirmed zero `/api/` requests fired — the same
+  "confirm the specific behavior the design doc calls out, don't just
+  eyeball it" discipline used throughout this session.
+- Found an existing `ADMIN` account in production from
+  `admin-content-authoring`'s original manual-grant verification
+  (`demo-rehearsal-...@example.com`) with no recorded password —
+  registered and granted a fresh test account for this slice's
+  production spot-check instead of trying to recover it.
+
 ## 2026-08-01 — `achievement-system`: streak and lesson-completion badges
 
 **Shipped**

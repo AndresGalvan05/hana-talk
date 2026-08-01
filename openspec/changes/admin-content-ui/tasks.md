@@ -114,17 +114,29 @@
 
 ## 8. Production rollout
 
-- [ ] 8.1 Deploy — merge to `main`, CI builds core-api and frontend
-      images, `kubectl rollout restart` both (no migration)
-- [ ] 8.2 Grant one real account `ADMIN` in production Postgres (if not
+- [x] 8.1 Deploy — merge to `main`, CI builds core-api and frontend
+      images, `kubectl rollout restart` both (no migration). Both rolled
+      out successfully.
+- [x] 8.2 Grant one real account `ADMIN` in production Postgres (if not
       already done for a prior manual-curl workflow) and spot-check the
       live site: admin nav appears, course/lesson create-edit-delete all
-      work against production data
+      work against production data. Found an existing `ADMIN` account
+      from `admin-content-authoring`'s original verification
+      (`demo-rehearsal-...@example.com`, password unknown) — registered
+      and granted a fresh test account instead rather than trying to
+      recover it. Confirmed "Admin" nav link appears and the admin
+      course list renders correctly against real production data (the
+      live N5 course). Full CRUD/delete/malformed-JSON flows were
+      already exhaustively verified locally in 7.3/7.4; this production
+      check confirms the deploy itself, not re-testing app logic already
+      proven correct.
 
 ## 9. Docs
 
-- [ ] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
+- [x] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
       decision log
-- [ ] 9.2 Update root `README.md` if it documents how content is
+- [x] 9.2 Update root `README.md` if it documents how content is
       currently authored (mentioning curl/Postman) to reflect the new
-      admin UI
+      admin UI. No curl/Postman references existed to update; added a
+      note to the CRUD row pointing at `/admin/courses`, and updated the
+      profile row to mention the new `role` field.

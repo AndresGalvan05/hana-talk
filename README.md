@@ -121,10 +121,10 @@ rather than committed to.
 | `POST /api/auth/register`, `POST /api/auth/login` | public | JWT issue |
 | `GET /api/courses`, `GET /api/courses/{id}` | public | Browse courses, filter by `?jlptLevel=` |
 | `GET /api/courses/{id}/lessons`, `.../lessons/{id}` | public | Lesson content |
-| `POST/PUT/DELETE` on courses & lessons | JWT, `ADMIN` role | Content CRUD |
+| `POST/PUT/DELETE` on courses & lessons | JWT, `ADMIN` role | Content CRUD, managed via the `/admin/courses` UI |
 | `POST /api/courses/{c}/lessons/{l}/complete` | JWT | Mark lesson complete (publishes `exercise.completed`) |
 | `GET /api/courses/{id}/progress` | JWT | Per-course completion |
-| `GET /api/users/me`, `PATCH /api/users/me/level` | JWT | Profile & JLPT level |
+| `GET /api/users/me`, `PATCH /api/users/me/level` | JWT | Profile, JLPT level, and role (`USER`/`ADMIN`) |
 | `GET /api/lessons/{id}/exercises` | JWT | LLM-generated (or seeded) exercises, no answers |
 | `POST /api/exercises/{id}/attempts` | JWT | Grade an attempt (publishes `exercise.completed`) |
 | `GET /api/users/me/streak`, `GET /api/leaderboard` | JWT | Day-granularity streak & leaderboard (proxied to `event-worker`) |
