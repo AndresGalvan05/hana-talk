@@ -9,6 +9,7 @@ import online.hanatalk.domain.JlptLevel
 import online.hanatalk.domain.Language
 import online.hanatalk.domain.user.User
 import online.hanatalk.domain.user.UserRepository
+import online.hanatalk.domain.user.UserRole
 import online.hanatalk.security.JwtService
 import online.hanatalk.security.SecurityConfig
 import online.hanatalk.security.UserDetailsServiceImpl
@@ -53,6 +54,7 @@ class UserProfileControllerTest {
             username = "taro",
             nativeLanguage = Language.ENGLISH,
             startingLevel = JlptLevel.N5,
+            role = UserRole.USER,
         )
 
     private val testUser = User(email = "taro@example.com", username = "taro", passwordHash = "hash")
@@ -74,6 +76,7 @@ class UserProfileControllerTest {
                 jsonPath("$.username") { value("taro") }
                 jsonPath("$.nativeLanguage") { value("ENGLISH") }
                 jsonPath("$.startingLevel") { value("N5") }
+                jsonPath("$.role") { value("USER") }
             }
     }
 

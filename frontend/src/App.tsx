@@ -1,7 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { RequireAdmin } from './components/RequireAdmin'
 import { RequireAuth } from './components/RequireAuth'
 import { AchievementsPage } from './pages/AchievementsPage'
+import { AdminCourseFormPage } from './pages/AdminCourseFormPage'
+import { AdminCoursesPage } from './pages/AdminCoursesPage'
+import { AdminLessonFormPage } from './pages/AdminLessonFormPage'
+import { AdminLessonsPage } from './pages/AdminLessonsPage'
 import { ChatPage } from './pages/ChatPage'
 import { CourseDetailPage } from './pages/CourseDetailPage'
 import { CoursesPage } from './pages/CoursesPage'
@@ -28,6 +33,14 @@ export default function App() {
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/flashcards" element={<FlashcardsPage />} />
           <Route path="/achievements" element={<AchievementsPage />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/courses" element={<AdminCoursesPage />} />
+            <Route path="/admin/courses/new" element={<AdminCourseFormPage />} />
+            <Route path="/admin/courses/:id/edit" element={<AdminCourseFormPage />} />
+            <Route path="/admin/courses/:courseId/lessons" element={<AdminLessonsPage />} />
+            <Route path="/admin/courses/:courseId/lessons/new" element={<AdminLessonFormPage />} />
+            <Route path="/admin/courses/:courseId/lessons/:lessonId/edit" element={<AdminLessonFormPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

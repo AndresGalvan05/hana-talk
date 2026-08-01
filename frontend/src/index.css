@@ -61,13 +61,16 @@ button:disabled {
   cursor: default;
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
   padding: 0.55rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 1rem;
   margin-top: 0.25rem;
+  font-family: inherit;
 }
 
 label {
@@ -699,4 +702,54 @@ label {
 
 .achievement-unlocked-at {
   margin: 0;
+}
+
+/* Admin */
+.admin-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-list-row {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.admin-list-title {
+  flex: 1;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-width: 480px;
+}
+
+.admin-form button {
+  align-self: flex-start;
+}
+
+.admin-json-editor {
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.confirm-delete {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.confirm-delete-trigger,
+.confirm-delete-confirm {
+  background: var(--error);
+}
+
+.confirm-delete-trigger:hover:not(:disabled),
+.confirm-delete-confirm:hover:not(:disabled) {
+  background: #8f1f19;
 }

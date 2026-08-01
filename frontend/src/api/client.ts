@@ -2,17 +2,23 @@ const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
 const TOKEN_KEY = 'hanatalk.token'
 const USERNAME_KEY = 'hanatalk.username'
+const ROLE_KEY = 'hanatalk.role'
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),
   getUsername: () => localStorage.getItem(USERNAME_KEY),
+  getRole: () => localStorage.getItem(ROLE_KEY),
   set: (token: string, username: string) => {
     localStorage.setItem(TOKEN_KEY, token)
     localStorage.setItem(USERNAME_KEY, username)
   },
+  setRole: (role: string) => {
+    localStorage.setItem(ROLE_KEY, role)
+  },
   clear: () => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USERNAME_KEY)
+    localStorage.removeItem(ROLE_KEY)
   },
 }
 
@@ -59,4 +65,6 @@ export const api = {
     request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) => request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }

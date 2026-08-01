@@ -83,10 +83,13 @@ export interface AttemptResult {
   correct: boolean
 }
 
+export type UserRole = 'USER' | 'ADMIN'
+
 export interface UserProfile {
   username: string
   nativeLanguage: string
   startingLevel: JlptLevel | null
+  role: UserRole
 }
 
 export interface Streak {
