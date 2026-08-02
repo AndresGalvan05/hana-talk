@@ -3,6 +3,55 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-02 — `responsive-mobile-ui`: mobile nav + layout fixes
+
+**Shipped**
+- OpenSpec change `responsive-mobile-ui` — the first frontend slice
+  driven directly by user feedback ("focus more on frontend, menus, and
+  mobile compatibility") rather than a pre-planned post-roadmap item.
+  Confirmed before writing any code: `index.css` had zero `@media`
+  queries anywhere across its ~755 lines, and the header nav had grown
+  to 7 items across every slice shipped this session with no wrap — a
+  real, unaddressed gap, not a hypothetical one.
+- A hamburger + slide-out drawer for the nav below a single `640px`
+  breakpoint (`Layout.tsx` + `index.css`), closing automatically on
+  navigation (`useLocation().pathname` in a `useEffect`) or backdrop
+  click. Chosen over a bottom tab bar or "just let it wrap" after asking
+  the user directly.
+- Mobile-safe layout for `.lesson-prev-next` (stacks to one column),
+  `.admin-list-row`/`.leaderboard-row` (wrap instead of overflowing),
+  and the vocabulary table (new `.table-scroll` horizontal-scroll
+  wrapper). Plus a small visual-polish item requested alongside the
+  mobile work: achievement cards get a ✅/🔒 icon prefix so locked/
+  unlocked status isn't opacity-only.
+
+**Errors & lessons**
+- *`resize_window`, the browser-automation tool's only viewport-control
+  primitive, silently did not resize the actual OS window in this
+  environment* (likely the Linux tiling window manager overriding
+  programmatic resize requests) — confirmed via `window.innerWidth`
+  staying at the original size after multiple resize calls that each
+  reported success. Worked around it with a same-origin `<iframe>`
+  fixed at a target CSS pixel width (375/768/1000px), injected via
+  `javascript_tool` — this correctly triggers real `@media` query
+  evaluation (confirmed via `matchMedia(...).matches` inside the
+  iframe), unlike a scaled screenshot would, and is same-origin so it
+  shares `localStorage`/auth state with the parent tab for free.
+- *Found and fixed a real CSS bug during verification, not just a test
+  artifact*: the `.lesson-prev-next { grid-template-columns: 1fr; }`
+  mobile override alone didn't stack the layout — computed style still
+  showed two columns. Root cause: an unrelated existing rule,
+  `.lesson-nav-next { grid-column: 2; }`, forced CSS Grid to
+  auto-generate an implicit second column to satisfy that explicit
+  placement, even with the container's explicit template collapsed to
+  one track. Fixed by also resetting `.lesson-nav-next { grid-column:
+  auto; }` inside the same mobile block. A good reminder that a media
+  query overriding one property on a container doesn't automatically
+  neutralize a *child's* explicit grid placement.
+- Verified the fix identically in both the local stack and production
+  after deploy (both reporting a single 328px grid column), not just
+  locally.
+
 ## 2026-08-01 — `admin-content-ui`: a real UI for course/lesson authoring
 
 **Shipped**

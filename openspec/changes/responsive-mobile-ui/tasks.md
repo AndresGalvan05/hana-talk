@@ -130,13 +130,18 @@
 
 ## 8. Production rollout
 
-- [ ] 8.1 Deploy — merge to `main`, CI builds the frontend image,
+- [x] 8.1 Deploy — merge to `main`, CI builds the frontend image,
       `kubectl rollout restart deployment/frontend` (no migration, no
-      other service involved)
-- [ ] 8.2 Spot-check the live site at a mobile viewport: hamburger/
-      drawer works, no visual regression at desktop width
+      other service involved). Rolled out successfully.
+- [x] 8.2 Spot-check the live site at a mobile viewport: hamburger/
+      drawer works, no visual regression at desktop width. Verified
+      against production using the same same-origin-iframe technique:
+      hamburger shows and the drawer opens correctly at 375px; the
+      lesson prev/next fix (the real bug found during local
+      verification) is confirmed fixed in production too — a single
+      328px column, matching the local result exactly.
 
 ## 9. Docs
 
-- [ ] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
+- [x] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
       decision log
