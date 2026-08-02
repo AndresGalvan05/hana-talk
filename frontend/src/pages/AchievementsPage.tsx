@@ -21,7 +21,9 @@ export function AchievementsPage() {
         <div className="achievement-grid">
           {achievements.map((a) => (
             <div key={a.code} className={a.unlocked ? 'card achievement-card' : 'card achievement-card achievement-locked'}>
-              <p className="achievement-title">{a.title}</p>
+              <p className="achievement-title">
+                {a.unlocked ? '✅' : '🔒'} {a.title}
+              </p>
               <p className="muted">{a.description}</p>
               {a.unlocked && a.unlockedAt && (
                 <p className="muted achievement-unlocked-at">Unlocked {new Date(a.unlockedAt).toLocaleDateString()}</p>

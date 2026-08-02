@@ -1,8 +1,15 @@
-import { Link, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 export function Layout() {
   const { username, role, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const location = useLocation()
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
 
   return (
     <>
@@ -10,7 +17,17 @@ export function Layout() {
         <Link to="/courses" className="brand">
           🌸 HanaTalk
         </Link>
-        <nav>
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          ☰
+        </button>
+        {menuOpen && <div className="nav-backdrop" onClick={() => setMenuOpen(false)} />}
+        <nav className={menuOpen ? 'site-nav site-nav-open' : 'site-nav'}>
           <Link to="/flashcards">Flashcards</Link>
           <Link to="/chat">Chat practice</Link>
           <Link to="/achievements">Achievements</Link>

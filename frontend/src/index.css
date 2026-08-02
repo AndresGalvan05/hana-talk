@@ -114,10 +114,28 @@ label {
   color: var(--text);
 }
 
-.site-header nav {
+.site-nav {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  color: var(--text);
+  border: none;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.nav-toggle:hover:not(:disabled) {
+  background: none;
+}
+
+.nav-backdrop {
+  display: none;
 }
 
 .nav-user {
@@ -319,6 +337,10 @@ label {
 .vocabulary-table table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.table-scroll {
+  overflow-x: auto;
 }
 
 .vocabulary-table th {
@@ -752,4 +774,61 @@ label {
 .confirm-delete-trigger:hover:not(:disabled),
 .confirm-delete-confirm:hover:not(:disabled) {
   background: #8f1f19;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .nav-toggle {
+    display: block;
+  }
+
+  .site-nav {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: min(75vw, 280px);
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+    padding: 4rem 1.5rem 1.5rem;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    z-index: 20;
+  }
+
+  .site-nav-open {
+    transform: translateX(0);
+  }
+
+  .nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 10;
+  }
+
+  .site-nav a,
+  .site-nav button {
+    padding: 0.4rem 0;
+  }
+
+  .lesson-prev-next {
+    grid-template-columns: 1fr;
+  }
+
+  .lesson-nav-next {
+    grid-column: auto;
+  }
+
+  .admin-list-row {
+    flex-wrap: wrap;
+  }
+
+  .leaderboard-row {
+    flex-wrap: wrap;
+  }
 }
