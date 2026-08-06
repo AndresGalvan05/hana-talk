@@ -3,6 +3,40 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-06 — Grafana Cloud alert rules for 5xx errors and Kafka failures
+
+**Shipped**
+- Three Grafana-managed alert rules, created directly in the Grafana
+  Cloud UI (not checked-in JSON — Grafana's alert-rule provisioning
+  format isn't the same lightweight paste-and-import flow the
+  dashboards use, so this one stays UI-only for now):
+  - `ai-exercise-svc: 5xx error rate` —
+    `sum(rate(http_server_duration_milliseconds_count{service_name="ai-exercise-svc",
+    http_status_code=~"5.."}[5m]))`
+  - `event-worker: 5xx error rate` —
+    `sum(rate(http_server_request_duration_seconds_count{service_name="event-worker",
+    http_response_status_code=~"5.."}[5m]))`
+  - `event-worker: Kafka processing failures` —
+    `sum(rate(kafka_messages_processed_total{service_name="event-worker",
+    success="false"}[5m]))`
+  - Each fires on `IS ABOVE 0`, folder `hanatalk`, evaluation group
+    `hanatalk-services` (every 1m, 1m pending period), and links to its
+    corresponding panel on the relevant overview dashboard.
+- Contact point: all three route to `empty` (`<empty contact point>` —
+  no email/Slack/webhook configured). Deliberate: it makes the rules
+  functional and visible in the Grafana UI without wiring up any real
+  notification destination, which wasn't asked for and isn't needed for
+  a portfolio project's demo purposes.
+- Direct implementation, not an OpenSpec change — same reasoning as the
+  dashboards this same session: UI-driven config, no application code,
+  no tests, comparably scoped to a task that would've lived inside the
+  original `grafana-cloud-observability` change.
+
+**Errors & lessons**
+- None — every query was typed against the same metric names already
+  verified live in Grafana Cloud earlier this session (see dashboard
+  entry below), so no new verification was needed.
+
 ## 2026-08-06 — Grafana dashboards for ai-exercise-svc and event-worker
 
 **Shipped**
