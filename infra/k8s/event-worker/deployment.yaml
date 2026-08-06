@@ -53,6 +53,11 @@ spec:
                 secretKeyRef:
                   name: event-worker-secret
                   key: OTEL_EXPORTER_OTLP_HEADERS
+            - name: OTEL_METRICS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: event-worker-config
+                  key: OTEL_METRICS_ENABLED
           # No /health route exists on event-worker's internal API today;
           # a TCP-socket probe avoids adding one for this rollout, matching
           # kafka.yaml's identical rationale (documented there).
