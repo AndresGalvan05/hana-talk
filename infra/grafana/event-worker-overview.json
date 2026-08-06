@@ -1,0 +1,92 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus",
+      "description": "Select your Grafana Cloud Prometheus/Mimir datasource on import.",
+      "type": "datasource",
+      "pluginId": "prometheus"
+    }
+  ],
+  "title": "HanaTalk event-worker overview",
+  "uid": "hanatalk-event-worker-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "timezone": "browser",
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "tags": ["hanatalk", "event-worker"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "Note",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "Metric names and labels verified live against Grafana Cloud on 2026-08-06 (service-metrics-export). `otelhttp`'s HTTP metrics use the newer stable OTel HTTP semantic conventions -- `http_server_request_duration_seconds_{bucket,count,sum}`, labeled `http_route`/`http_request_method`/`http_response_status_code`. This is a different label set from `ai-exercise-svc`'s dashboard (older semconv, millisecond-suffixed names) -- both confirmed real, not assumed identical."
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "HTTP request rate",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"event-worker\"}[5m])) by (http_route, http_request_method)",
+          "legendFormat": "{{http_request_method}} {{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "HTTP error rate (5xx)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 3 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(http_server_request_duration_seconds_count{service_name=\"event-worker\", http_response_status_code=~\"5..\"}[5m])) by (http_route)",
+          "legendFormat": "{{http_route}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Kafka messages processed rate by topic and outcome",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "sum(rate(kafka_messages_processed_total{service_name=\"event-worker\"}[5m])) by (topic, success)",
+          "legendFormat": "{{topic}} ({{success}})"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Kafka message processing duration (p95) by topic",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "unit": "s" },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "histogram_quantile(0.95, sum(rate(kafka_message_processing_duration_seconds_bucket{service_name=\"event-worker\"}[5m])) by (le, topic))",
+          "legendFormat": "{{topic}}"
+        }
+      ]
+    }
+  ]
+}

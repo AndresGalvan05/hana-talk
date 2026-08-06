@@ -3,6 +3,45 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-06 — Grafana dashboards for ai-exercise-svc and event-worker
+
+**Shipped**
+- Two new checked-in dashboard JSON files,
+  `infra/grafana/ai-exercise-svc-overview.json` and
+  `infra/grafana/event-worker-overview.json`, following the exact same
+  pattern as the existing `core-api-overview.json` — a manually-imported
+  artifact (paste into Grafana Cloud's "Import dashboard" UI, select the
+  Prometheus datasource for the templated `DS_PROMETHEUS` input), not
+  API-provisioned, matching that dashboard's original design rationale
+  (no Grafana API token with write access needed; a durable, reviewable
+  artifact in the repo).
+- Direct implementation, not a dedicated OpenSpec change — matching the
+  precedent that the original `core-api-overview.json` was itself just
+  one task inside a broader observability change, not a standalone
+  slice, and this is comparably scoped (two static JSON files, no
+  application code, no tests).
+- Every one of the 8 panels' PromQL queries was run directly against
+  real Grafana Cloud data via Explore before being written into the
+  dashboard JSON — not assumed from memory of the metric names chosen
+  during implementation. This caught a real, non-obvious fact: the two
+  services use **different OTel HTTP semantic-convention versions**.
+  `ai-exercise-svc`'s `FastAPIInstrumentor` emits the older convention
+  (`http_server_duration_milliseconds_{bucket,count,sum}`, labeled
+  `http_target`/`http_method`/`http_status_code`), while
+  `event-worker`'s `otelhttp` (a newer contrib module version) emits the
+  stable convention (`http_server_request_duration_seconds_{bucket,
+  count,sum}`, labeled `http_route`/`http_request_method`/
+  `http_response_status_code`). The two dashboards' HTTP panels are
+  deliberately *not* copy-pasted from each other — each uses its
+  service's real label set, with a note panel on each dashboard
+  explicitly documenting the difference so it doesn't get "fixed" into
+  a false consistency later.
+
+**Errors & lessons**
+- None this time — every panel query was verified against live data
+  before being committed, continuing the discipline established
+  earlier the same day when the metrics themselves were first checked.
+
 ## 2026-08-06 — `service-metrics-export` follow-up: event-worker's metrics never actually reached Grafana Cloud
 
 **What happened**
