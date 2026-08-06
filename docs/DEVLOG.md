@@ -3,6 +3,58 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-06 — `service-metrics-export` follow-up: event-worker's metrics never actually reached Grafana Cloud
+
+**What happened**
+- Asked to check Grafana Cloud for the new metrics after archiving
+  `service-metrics-export`. `ai-exercise-svc`'s `llm_call_duration_seconds`/
+  `llm_call_total` and standard `http_server_*` metrics were live and
+  correctly labeled. **`event-worker` had zero metrics of any kind** —
+  not just the new Kafka ones, nothing at all, confirmed via
+  `{service_name="event-worker"}` returning no data in Explore.
+
+**Root cause**
+- `infra/k8s/event-worker/deployment.yaml` wires every env var
+  individually (`env: - name: X, valueFrom: configMapKeyRef: ...`) —
+  unlike `infra/k8s/ai-exercise-svc/deployment.yaml`, which uses a
+  blanket `envFrom: - configMapRef:`. Adding `OTEL_METRICS_ENABLED` to
+  `event-worker-config`'s data (task 5.2, done during the original
+  implementation) updated the ConfigMap but never reached the pod's
+  actual environment, since nothing referenced that key explicitly.
+  Confirmed directly: `kubectl exec deployment/event-worker -- env`
+  showed `OTEL_EXPORTER_OTLP_ENDPOINT`/`_HEADERS` but no
+  `OTEL_METRICS_ENABLED` at all, even after the original rollout.
+  `ai-exercise-svc`'s identical-looking task (5.1) worked purely because
+  its deployment happens to use the blanket-envFrom pattern — the two
+  services' env-wiring conventions were never actually the same, and
+  nothing in the original implementation checked that.
+
+**Fix**
+- Added the missing explicit `env:` entry
+  (`valueFrom: configMapKeyRef: name: event-worker-config, key:
+  OTEL_METRICS_ENABLED`) to `deployment.yaml`, applied it, restarted the
+  deployment. Confirmed the fix two ways: `kubectl exec ... -- env` now
+  shows `OTEL_METRICS_ENABLED=true`, and — the real test — a fresh
+  production lesson completion produced `kafka_message_processing_duration_seconds`
+  data in Grafana Cloud Explore within the next export cycle, correctly
+  labeled by `topic`.
+
+**Lesson**
+- "The ConfigMap has the key" and "the pod's environment has the key"
+  are not the same fact in this repo, because the two services picked
+  different env-wiring conventions for reasons unrelated to metrics
+  (event-worker's per-var wiring predates this change, likely to keep
+  secret-sourced DB credentials next to their non-secret counterparts
+  explicitly). A config change task should say which wiring convention a
+  service actually uses, not assume "add the key to the configmap" is a
+  complete description of the change — and verification should confirm
+  the value inside the running pod's environment, not just the
+  ConfigMap object, exactly as this check ended up doing by accident
+  when asked to look at Grafana Cloud rather than trusting the earlier
+  "rolled out successfully" pod-log check (which only confirms the
+  process started, not that every env var it depends on is actually
+  present).
+
 ## 2026-08-06 — `service-metrics-export`: metrics for ai-exercise-svc and event-worker
 
 **Shipped**
