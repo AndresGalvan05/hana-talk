@@ -7,3 +7,9 @@ data:
   # Base URL only, same reasoning as ai-exercise-svc-config -- the Go OTel
   # SDK appends /v1/traces itself.
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
+  # Distinct from core-api's GRAFANA_CLOUD_METRICS_ENABLED (a Spring/
+  # Micrometer-specific flag) -- this service uses the OTel SDK directly,
+  # so it reads a plain OTel-convention env var instead. Off by default;
+  # local docker-compose leaves this unset since local Jaeger only accepts
+  # OTLP traces, not metrics.
+  OTEL_METRICS_ENABLED: "true"

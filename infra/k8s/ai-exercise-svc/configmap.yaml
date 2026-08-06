@@ -9,3 +9,9 @@ data:
   # appends /v1/traces itself. Same underlying Grafana Cloud stack as
   # core-api's OTEL_EXPORTER_OTLP_ENDPOINT (which does include the path).
   OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-sa-east-1.grafana.net/otlp"
+  # Distinct from core-api's GRAFANA_CLOUD_METRICS_ENABLED (a Spring/
+  # Micrometer-specific flag) -- this service uses the OTel SDK directly,
+  # so it reads a plain OTel-convention env var instead. Off by default;
+  # local docker-compose leaves this unset since local Jaeger only accepts
+  # OTLP traces, not metrics.
+  OTEL_METRICS_ENABLED: "true"

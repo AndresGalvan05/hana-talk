@@ -100,7 +100,9 @@ func processJobs(ctx context.Context, jobs <-chan job, s *store.Store) {
 	for j := range jobs {
 		msgCtx := extractTraceContext(ctx, j.headers)
 		msgCtx, span := tracer.Start(msgCtx, "consume "+j.topic)
+		start := time.Now()
 		err := handle(msgCtx, j.topic, j.value, s)
+		recordProcessed(msgCtx, j.topic, time.Since(start).Seconds(), err == nil)
 		if err != nil {
 			span.RecordError(err)
 		}

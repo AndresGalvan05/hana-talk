@@ -16,6 +16,7 @@ import (
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/config"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/consumer"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/db"
+	"github.com/AndresGalvan05/hana-talk/event-worker/internal/metrics"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/store"
 	"github.com/AndresGalvan05/hana-talk/event-worker/internal/tracing"
 )
@@ -42,6 +43,12 @@ func run() error {
 		return err
 	}
 	defer func() { _ = shutdownTracing(context.Background()) }()
+
+	shutdownMetrics, err := metrics.Setup(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = shutdownMetrics(context.Background()) }()
 
 	pool, err := db.Connect(ctx, cfg.DBURL)
 	if err != nil {
