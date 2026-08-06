@@ -3,6 +3,81 @@
 Newest first. Every working session gets an entry: what shipped, what broke,
 and root causes — so no lesson has to be relearned.
 
+## 2026-08-06 — `service-metrics-export`: metrics for ai-exercise-svc and event-worker
+
+**Shipped**
+- OpenSpec change `service-metrics-export` — the last item from the
+  post-roadmap planning session's original list ("extended
+  observability"), but research done before writing the proposal
+  corrected the assumed scope: tracing for `ai-exercise-svc` and
+  `event-worker` was already live in Grafana Cloud, shipped by
+  `cross-service-tracing` earlier this session. The real remaining gap
+  was narrower — only core-api exported any metrics. Confirmed this
+  precisely (not assumed) by reading both services' actual OTel setup
+  code before scoping the change.
+- `ai-exercise-svc` gets a `MeterProvider` alongside its existing
+  `TracerProvider`, plus a duration histogram + success/failure counter
+  recorded inside `call_with_fallback` for every LLM provider attempt
+  (labeled by provider). `event-worker` gets a parallel
+  `internal/metrics` package mirroring `internal/tracing`'s shape, plus
+  a duration histogram + success/failure counter recorded in the
+  consumer's existing per-message tracing-span site (labeled by topic).
+  Both services' standard HTTP request metrics come for free once a
+  `MeterProvider` exists, since `FastAPIInstrumentor` and `otelhttp`
+  already wrap the request paths for tracing.
+- Export is gated behind a new `OTEL_METRICS_ENABLED` flag (default
+  off), mirroring core-api's existing `GRAFANA_CLOUD_METRICS_ENABLED`
+  pattern and its stated reason: local Jaeger only accepts OTLP traces,
+  not metrics, so an always-on exporter would error against it locally.
+
+**Errors & lessons**
+- *Found and fixed a real circular-import bug during implementation*,
+  not just a test artifact: the design doc's plan to have
+  `app/llm_fallback.py` import a shared `meter` from `app/main.py`
+  would have created `main -> routes -> generation/chat -> llm_fallback
+  -> main`. Fixed by having `llm_fallback.py` call
+  `opentelemetry.metrics.get_meter(...)` directly against OTel's global
+  registry instead — safe regardless of import order, because OTel's
+  Python (and Go) APIs both implement a documented proxy-provider
+  mechanism: instruments created before the real provider is registered
+  get upgraded automatically once it is.
+- *Changed the design's provider-naming approach after implementation
+  revealed a subtler bug it would have caused*: a `{call_gemini:
+  "gemini", ...}` dict keyed by function identity, built once at import
+  time, would silently stop matching once a test monkeypatches
+  `app.llm_fallback.call_gemini` to a mock — the very thing an existing
+  code comment in that file explains the provider tuple is deliberately
+  re-resolved from module globals on every call to support. Fixed with
+  `(name, callable)` tuples instead, which don't depend on function
+  identity at all.
+- *Found a real Go OTel SDK constraint while writing `event-worker`'s
+  metrics test*: the global `MeterProvider`'s proxy-upgrade only
+  happens the *first* time `otel.SetMeterProvider` is called
+  process-wide — a second call in a separate, later test doesn't
+  retarget already-created package-level instruments to the new test's
+  reader. An initial two-separate-tests design silently lost data in
+  the second test as a result; fixed by combining both assertions into
+  one test sharing a single provider/reader.
+- Verified the "metrics export is non-fatal when it can't reach a valid
+  OTLP metrics receiver" behavior directly, not just assumed: ran both
+  services locally with `OTEL_METRICS_ENABLED=true` pointed at local
+  Jaeger (which only accepts traces), waited past the default ~60s
+  export interval, confirmed both stayed up with no crash and no
+  unhandled exception — matching this app's established
+  best-effort-observability principle (same one already documented for
+  Kafka publishing).
+- Along the way, hit and cleared a stale/pre-existing MongoDB
+  `generated_exercises` cache entry (from an earlier session, unrelated
+  to this change) that was failing Pydantic validation on read — the
+  same "stale cache" class of issue already documented from this
+  session's very first production-incident fix.
+- Could not personally verify the Grafana Cloud Explore/metrics-browser
+  side of the export — those credentials live in a gitignored env file
+  outside the repo, deliberately not read directly. Real production
+  activity was triggered (a chat message, a lesson completion) to
+  exercise both instrumented code paths; confirming the data actually
+  landed in Grafana Cloud is a follow-up check for the user.
+
 ## 2026-08-02 — `responsive-mobile-ui`: mobile nav + layout fixes
 
 **Shipped**

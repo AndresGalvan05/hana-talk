@@ -187,27 +187,45 @@
 
 ## 8. Production rollout
 
-- [ ] 8.1 Deploy — merge to `main`, CI builds `ai-exercise-svc` and
+- [x] 8.1 Deploy — merge to `main`, CI builds `ai-exercise-svc` and
       `event-worker` images, `kubectl rollout restart` both (no
-      migration)
-- [ ] 8.2 Confirm both services start cleanly in production logs (no
-      crash-looping from the new metrics setup code)
-- [ ] 8.3 Trigger real activity (a chat message, an exercise generation,
+      migration). Also applied the updated configmaps (new
+      `OTEL_METRICS_ENABLED` key) before restarting. Both rolled out
+      successfully.
+- [x] 8.2 Confirm both services start cleanly in production logs (no
+      crash-looping from the new metrics setup code). Verified: both
+      pods `1/1 Running`, 0 restarts, normal startup logs, no
+      metrics-related errors.
+- [x] 8.3 Trigger real activity (a chat message, an exercise generation,
       a lesson completion) against production, then check the Grafana
       Cloud metrics browser/Explore view for `llm_call_duration_seconds`,
       `llm_call_total`, `kafka_message_processing_duration_seconds`,
       `kafka_messages_processed_total`, and standard `http_server_*`
       metrics from both services — this is the only real confirmation
       that OTLP export actually reaches Grafana Cloud, per the design
-      doc's accepted local-verification limitation
+      doc's accepted local-verification limitation. Triggered a real
+      chat message (200, real reply) and lesson completion (204)
+      against production — both exercise the exact instrumented code
+      paths. **Could not personally confirm the Grafana Cloud
+      Explore/metrics-browser side**: Grafana Cloud credentials live in
+      a gitignored env file outside the repo
+      (`GRAFANA_CLOUD_ENV_PATH`), deliberately not read directly per
+      this session's established credential-handling discipline, and I
+      have no browser session logged into the user's Grafana Cloud org.
+      **User action needed**: check the Grafana Cloud Explore view for
+      `llm_call_duration_seconds`/`llm_call_total` (service
+      `ai-exercise-svc`) and
+      `kafka_message_processing_duration_seconds`/
+      `kafka_messages_processed_total` (service `event-worker`) to
+      close the loop on this task.
 
 ## 9. Docs
 
-- [ ] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
+- [x] 9.1 Update `docs/DEVLOG.md` (session entry) and `docs/ROADMAP.md`
       decision log — including correcting the stale "extended
       observability still on the table" framing now that tracing is
       confirmed already done and only metrics were the actual gap
-- [ ] 9.2 Update `docs/ARCHITECTURE.md` §8 (or wherever the "core-api,
+- [x] 9.2 Update `docs/ARCHITECTURE.md` §8 (or wherever the "core-api,
       ai-exercise-svc, and event-worker all export OTel traces (core-api
       also exports metrics)" line lives) to reflect all three now
       exporting metrics

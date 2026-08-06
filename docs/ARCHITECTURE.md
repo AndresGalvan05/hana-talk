@@ -40,8 +40,10 @@ a technical interview, rather than chronologically.
 ```
 
 core-api, `ai-exercise-svc`, and `event-worker` all export OTel traces
-(core-api also exports metrics) via OTLP directly to Grafana Cloud — no
-in-cluster collector/agent.
+and metrics via OTLP directly to Grafana Cloud — no in-cluster
+collector/agent. Metrics export is opt-in per service
+(`OTEL_METRICS_ENABLED`/`GRAFANA_CLOUD_METRICS_ENABLED`, default off),
+since local Jaeger only accepts OTLP traces.
 
 Two independent relationships cross the core-api ↔ event-worker boundary,
 worth naming explicitly since they're easy to conflate: **Kafka**
